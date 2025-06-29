@@ -20,38 +20,14 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left side - Blue section with billing imagery */}
-      <div className="flex-1 bg-blue-600 flex items-center justify-center p-8 relative overflow-hidden">
-        <div className="text-center text-white z-10">
-          <div className="flex justify-center space-x-6 mb-8">
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <Receipt className="w-8 h-8 text-white" />
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <Calculator className="w-8 h-8 text-white" />
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <CreditCard className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold mb-4">Smart Billing Solutions</h1>
-          <p className="text-xl text-blue-100 mb-6">
-            Streamline your invoicing and payment processes with our comprehensive billing platform
-          </p>
-          <div className="flex justify-center space-x-8 text-blue-200">
-            <div className="text-center">
-              <div className="text-2xl font-bold">99%</div>
-              <div className="text-sm">Uptime</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">24/7</div>
-              <div className="text-sm">Support</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">500+</div>
-              <div className="text-sm">Clients</div>
-            </div>
-          </div>
+      {/* Left side - Login Logo */}
+      <div className="flex-1 bg-blue-600 flex items-start justify-center p-8 pt-8 relative overflow-hidden">
+        <div className="text-center text-white z-10 -ml-8 mt-2">
+          <img 
+            src="/Images/billing-software.png" 
+            alt="Novacraft Billing Login" 
+            className="max-w-lg w-full h-auto"
+          />
         </div>
         
         {/* Decorative elements */}
@@ -65,13 +41,15 @@ export const Login: React.FC = () => {
         <Card className="w-full max-w-md border">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
+              <img 
+                src="/Images/Logo.webp" 
+                alt="Novacraft Billing Logo" 
+                className="h-8 w-auto"
+              />
             </div>
-            <CardTitle className="text-2xl font-medium">Welcome to Novacraft Billing</CardTitle>
-            <p className="text-gray-600">Blantyre, Malawi - Billing Solutions</p>
-            <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+            <CardTitle className="text-2xl font-medium">Welcome back</CardTitle>
+            <p className="text-gray-600">Sign in to your account</p>
+
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -121,14 +99,7 @@ export const Login: React.FC = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-blue-600 hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </div>
+           
           </CardContent>
         </Card>
       </div>

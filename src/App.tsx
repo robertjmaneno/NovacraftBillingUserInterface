@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -43,7 +42,7 @@ const App = () => (
           <Route path="/mfa" element={<MFA />} />
           
           {/* Main app routes (with layout) */}
-          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/" element={<Login />} />
           <Route path="/invoices" element={<Layout><Invoices /></Layout>} />
           <Route path="/invoices/new" element={<Layout><CreateInvoice /></Layout>} />
           <Route path="/invoices/template" element={<Layout><InvoiceTemplate /></Layout>} />

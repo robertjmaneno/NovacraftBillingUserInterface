@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,9 +30,11 @@ export const ResetPassword: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-white" />
-            </div>
+            <img 
+              src="/Images/Logo.webp" 
+              alt="Novacraft Billing Logo" 
+              className="h-8 w-auto"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
           <p className="text-gray-600">
