@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -19,25 +18,27 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { useCreateService, SERVICE_CATEGORIES, BILLING_CYCLES } from '@/hooks/use-services';
-import { CreateServiceRequest } from '@/services/api';
+import { useUpdateService, SERVICE_CATEGORIES, BILLING_CYCLES, SERVICE_STATUSES } from '@/hooks/use-services';
+import { Service, UpdateServiceRequest } from '@/services/api';
 
-interface CreateServiceDialogProps {
+interface EditServiceDialogProps {
+  service: Service | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
+export const EditServiceDialog: React.FC<EditServiceDialogProps> = ({
+  service,
   open,
   onOpenChange,
 }) => {
-  const createServiceMutation = useCreateService();
-  const [formData, setFormData] = useState<CreateServiceRequest>({
+  const updateServiceMutation = useUpdateService();
+  const [formData, setFormData] = useState<UpdateServiceRequest>({
     name: '',
     description: '',
     price: 0,
-    billingCycle: 1, // Default to Monthly
-    status: 1, // Default to Active
+    billingCycle: 1,
+    status: 1,
     category: 'Web Hosting',
     discountPercentage: 0,
     isTaxable: false,
@@ -48,8 +49,29 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
   const [priceInput, setPriceInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
 
+  // Populate form when service changes
+  useEffect(() => {
+    if (service) {
+      setFormData({
+        name: service.name,
+        description: service.description || '',
+        price: service.price,
+        billingCycle: service.billingCycle,
+        status: service.status,
+        category: service.category || 'Web Hosting',
+        discountPercentage: service.discountPercentage,
+        isTaxable: service.isTaxable,
+        termsAndConditions: service.termsAndConditions || '',
+      });
+      setPriceInput(service.price.toString());
+      setDiscountInput(service.discountPercentage.toString());
+    }
+  }, [service]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!service) return;
     
     // Validation
     if (!formData.name.trim()) {
@@ -83,28 +105,12 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
     }
     
     try {
-      await createServiceMutation.mutateAsync(formData);
+      await updateServiceMutation.mutateAsync({ id: service.id, data: formData });
       onOpenChange(false);
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        price: 0,
-        billingCycle: 1,
-        status: 1,
-        category: 'Web Hosting',
-        discountPercentage: 0,
-        isTaxable: false,
-        termsAndConditions: '',
-      });
-      setPriceInput('');
-      setDiscountInput('');
     } catch (error) {
-      console.error('Failed to create service:', error);
+      console.error('Failed to update service:', error);
     }
   };
-
-
 
   const handlePriceChange = (value: string) => {
     // Remove all non-numeric characters except decimal point
@@ -157,11 +163,13 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
     setFormData({ ...formData, discountPercentage: numValue });
   };
 
+  if (!service) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Create New Service</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Edit Service</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -223,6 +231,25 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+            <Select 
+              value={formData.status.toString()} 
+              onValueChange={(value) => setFormData({ ...formData, status: parseInt(value) })}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                {SERVICE_STATUSES.map((status) => (
+                  <SelectItem key={status.value} value={status.value.toString()}>
+                    {status.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="description" className="text-sm font-medium">Description</Label>
             <Textarea
               id="description"
@@ -248,8 +275,6 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
                 value={priceInput}
                 onChange={(e) => handlePriceChange(e.target.value)}
                 placeholder="0.00"
-                min="0"
-                step="0.01"
                 className="h-10"
                 required
               />
@@ -299,7 +324,7 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              disabled={createServiceMutation.isPending}
+              disabled={updateServiceMutation.isPending}
               className="px-6"
             >
               Cancel
@@ -307,14 +332,14 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
 
             <Button 
               type="submit" 
-              className="bg-blue-600 hover:bg-blue-700 px-6"
-              disabled={createServiceMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 px-6"
+              disabled={updateServiceMutation.isPending}
             >
-              {createServiceMutation.isPending ? 'Creating...' : 'Create Service'}
+              {updateServiceMutation.isPending ? 'Updating...' : 'Update Service'}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   );
-};
+}; 

@@ -16,59 +16,59 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DashboardShimmer } from '@/components/ui/shimmer';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '@/services/api';
 
-const stats = [
-  {
-    title: 'Total Revenue',
-    value: '$45,231.89',
-    change: '+20.1%',
-    changeType: 'positive',
-    icon: DollarSign,
-    color: 'text-green-600 bg-green-50',
-    trend: 'up',
-  },
-  {
-    title: 'Outstanding',
-    value: '$12,234.56',
-    change: '-4.3%',
-    changeType: 'negative',
-    icon: AlertCircle,
-    color: 'text-orange-600 bg-orange-50',
-    trend: 'down',
-  },
-  {
-    title: 'Total Invoices',
-    value: '254',
-    change: '+12.5%',
-    changeType: 'positive',
-    icon: FileText,
-    color: 'text-blue-600 bg-blue-50',
-    trend: 'up',
-  },
-  {
-    title: 'Active Clients',
-    value: '48',
-    change: '+8.2%',
-    changeType: 'positive',
-    icon: Users,
-    color: 'text-purple-600 bg-purple-50',
-    trend: 'up',
-  },
-];
+// Helper function to get customer display name (same as in Subscriptions)
+const getCustomerDisplayName = (customer: any) => {
+  if (!customer) return 'Unknown Customer';
+  
+  // For business customers (customerType === 1), show organization name
+  if (customer.customerType === 1 && customer.organizationName && customer.organizationName.trim()) {
+    return customer.organizationName;
+  }
+  
+  // For individual customers (customerType === 0), show first name + last name
+  if (customer.customerType === 0) {
+    const firstName = customer.firstName?.trim() || '';
+    const lastName = customer.lastName?.trim() || '';
+    if (firstName || lastName) {
+      return `${firstName} ${lastName}`.trim();
+    }
+  }
+  
+  // Fallback: show email if available
+  if (customer.email && customer.email.trim()) {
+    return customer.email;
+  }
+  
+  // Final fallback: show phone number
+  if (customer.phoneNumber && customer.phoneNumber.trim()) {
+    return customer.phoneNumber;
+  }
+  
+  return 'Unknown Customer';
+};
 
-const recentInvoices = [
-  { id: 'INV-001', client: 'Acme Corp', amount: '$2,500.00', status: 'Paid', date: '2024-01-15', priority: 'high' },
-  { id: 'INV-002', client: 'Tech Solutions', amount: '$1,800.00', status: 'Pending', date: '2024-01-14', priority: 'medium' },
-  { id: 'INV-003', client: 'Digital Agency', amount: '$3,200.00', status: 'Overdue', date: '2024-01-10', priority: 'high' },
-  { id: 'INV-004', client: 'StartupXYZ', amount: '$950.00', status: 'Draft', date: '2024-01-12', priority: 'low' },
-];
+// Invoice status mapping (same as in Invoices.tsx)
+const statusNameMap: Record<number, string> = {
+  1: 'Draft',
+  2: 'Sent',
+  3: 'Paid',
+  4: 'Overdue',
+  5: 'Cancelled',
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Paid': return 'bg-green-100 text-green-800 border-green-200';
+    case 'Sent': return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     case 'Overdue': return 'bg-red-100 text-red-800 border-red-200';
     case 'Draft': return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
     default: return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 };
@@ -76,23 +76,124 @@ const getStatusColor = (status: string) => {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'Paid': return <CheckCircle className="w-3 h-3" />;
+    case 'Sent': return <FileText className="w-3 h-3" />;
     case 'Pending': return <Clock className="w-3 h-3" />;
     case 'Overdue': return <AlertCircle className="w-3 h-3" />;
+    case 'Draft': return <FileText className="w-3 h-3" />;
+    case 'Cancelled': return <AlertCircle className="w-3 h-3" />;
     default: return <FileText className="w-3 h-3" />;
   }
 };
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuth();
+
+  // Fetch payment stats
+  const { data: paymentStats, isLoading: paymentStatsLoading } = useQuery({
+    queryKey: ['payment-stats'],
+    queryFn: () => apiService.getPaymentStats(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch total subscription revenue
+  const { data: subscriptionRevenue, isLoading: subscriptionRevenueLoading } = useQuery({
+    queryKey: ['subscription-revenue'],
+    queryFn: () => apiService.getTotalSubscriptionRevenue(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch customers count
+  const { data: customersData, isLoading: customersLoading } = useQuery({
+    queryKey: ['customers-count'],
+    queryFn: () => apiService.getCustomers({ pageSize: 1 }), // Just get count
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch invoices count and recent invoices
+  const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
+    queryKey: ['invoices-data'],
+    queryFn: () => apiService.getInvoices({ pageSize: 5 }), // Get latest 5 invoices
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isLoading = paymentStatsLoading || subscriptionRevenueLoading || customersLoading || invoicesLoading;
+
+  if (isLoading) {
+    return <DashboardShimmer />;
+  }
+
+  // Calculate stats from API data
+  const totalRevenue = (paymentStats?.data?.totalPayments || 0) + (subscriptionRevenue?.data || 0);
+  const totalCustomers = customersData?.data?.totalCount || 0;
+  const totalInvoices = invoicesData?.data?.totalCount || 0;
+  const recentInvoices = invoicesData?.data?.items || [];
+
+  const stats = [
+    {
+      title: 'Total Revenue',
+      value: `${Number(totalRevenue).toLocaleString()} MWK`,
+      change: '+0%',
+      changeType: 'positive' as const,
+      icon: DollarSign,
+      color: 'text-green-600 bg-green-50',
+      trend: 'up' as const,
+    },
+    {
+      title: 'Pending Payments',
+      value: `${Number(paymentStats?.data?.pending || 0).toLocaleString()} MWK`,
+      change: '+0%',
+      changeType: 'negative' as const,
+      icon: AlertCircle,
+      color: 'text-orange-600 bg-orange-50',
+      trend: 'down' as const,
+    },
+    {
+      title: 'Total Invoices',
+      value: totalInvoices.toString(),
+      change: '+0%',
+      changeType: 'positive' as const,
+      icon: FileText,
+      color: 'text-blue-600 bg-blue-50',
+      trend: 'up' as const,
+    },
+    {
+      title: 'Total Customers',
+      value: totalCustomers.toString(),
+      change: '+0%',
+      changeType: 'positive' as const,
+      icon: Users,
+      color: 'text-purple-600 bg-purple-50',
+      trend: 'up' as const,
+    },
+  ];
+
+  // Get user's display name
+  const getUserDisplayName = () => {
+    if (!user) return 'User';
+    
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    } else if (user.firstName) {
+      return user.firstName;
+    } else if (user.fullName) {
+      return user.fullName;
+    } else {
+      return 'User';
+    }
+  };
+
+  const displayName = getUserDisplayName();
+
   return (
     <div className="space-y-8">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-lg text-gray-600">Welcome back! Here's what's happening with your business.</p>
+     
+          <p className="text-lg font-semibold text-gray-700">Welcome back, {displayName}! Here's what's happening with your business.</p>
         </div>
         <div className="flex space-x-3">
-          <Link to="/invoices/new">
+          <Link to="/invoices/create">
             <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg">
               <Plus className="w-4 h-4 mr-2" />
               New Invoice
@@ -102,28 +203,28 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Enhanced Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="hover:shadow-lg transition-all duration-300 border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl ${stat.color}`}>
-                  <stat.icon className="w-6 h-6" />
+          <Card key={stat.title} className="border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-lg ${stat.color}`}>
+                  <stat.icon className="w-5 h-5" />
                 </div>
                 <div className={`flex items-center space-x-1 ${
                   stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {stat.trend === 'up' ? (
-                    <ArrowUpRight className="w-4 h-4" />
+                    <ArrowUpRight className="w-3 h-3" />
                   ) : (
-                    <ArrowDownRight className="w-4 h-4" />
+                    <ArrowDownRight className="w-3 h-3" />
                   )}
-                  <span className="text-sm font-semibold">{stat.change}</span>
+                  <span className="text-xs font-semibold">{stat.change}</span>
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                <p className="text-xs font-medium text-gray-600 mb-1">{stat.title}</p>
+                <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
                 <p className="text-xs text-gray-500">from last month</p>
               </div>
             </CardContent>
@@ -131,48 +232,55 @@ export const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Enhanced Recent Invoices */}
         <Card className="lg:col-span-2 border">
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl">Recent Invoices</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">Latest invoice activity</p>
+                <CardTitle className="text-lg">Recent Invoices</CardTitle>
+                <p className="text-xs text-gray-600 mt-1">Latest invoice activity</p>
               </div>
               <Link to="/invoices">
                 <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
                   View All
-                  <ArrowUpRight className="w-4 h-4 ml-1" />
+                  <ArrowUpRight className="w-3 h-3 ml-1" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {recentInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1">
-                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-1">
-                        <span className="font-semibold text-gray-900">{invoice.id}</span>
-                        <Badge className={`${getStatusColor(invoice.status)} text-xs flex items-center space-x-1`}>
-                          {getStatusIcon(invoice.status)}
-                          <span>{invoice.status}</span>
-                        </Badge>
+            <div className="space-y-2">
+              {recentInvoices.length > 0 ? (
+                recentInvoices.map((invoice: any) => (
+                  <div key={invoice.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-blue-600" />
                       </div>
-                      <p className="text-sm text-gray-600">{invoice.client}</p>
-                      <p className="text-xs text-gray-500">{invoice.date}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-semibold text-sm text-gray-900">{invoice.invoiceNumber || `INV-${invoice.id}`}</span>
+                          <Badge className={`${getStatusColor(statusNameMap[invoice.status] || 'Unknown')} text-xs flex items-center space-x-1`}>
+                            {getStatusIcon(statusNameMap[invoice.status] || 'Unknown')}
+                            <span>{statusNameMap[invoice.status] || 'Unknown'}</span>
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-600">{getCustomerDisplayName(invoice.customer)}</p>
+                        <p className="text-xs text-gray-500">{invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : '-'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900 text-sm">{invoice.amount ? `${Number(invoice.amount).toLocaleString()} MWK` : '-'}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900 text-lg">{invoice.amount}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p>No invoices found</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -180,41 +288,41 @@ export const Dashboard: React.FC = () => {
         {/* Enhanced Quick Actions */}
         <Card className="border">
           <CardHeader>
-            <CardTitle className="text-xl">Quick Actions</CardTitle>
-            <p className="text-sm text-gray-600">Common tasks</p>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+            <p className="text-xs text-gray-600">Common tasks</p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Link to="/invoices/new">
-                <Button variant="outline" className="w-full h-24 flex-col hover:bg-blue-50 hover:border-blue-200 transition-colors">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
+            <div className="grid grid-cols-2 gap-2">
+              <Link to="/invoices/create">
+                <Button variant="outline" className="w-full h-20 flex-col">
+                  <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center mb-1">
+                    <FileText className="w-4 h-4 text-blue-600" />
                   </div>
-                  <span className="text-sm font-medium">Create Invoice</span>
+                  <span className="text-xs font-medium">Create Invoice</span>
                 </Button>
               </Link>
-              <Link to="/clients">
-                <Button variant="outline" className="w-full h-24 flex-col hover:bg-green-50 hover:border-green-200 transition-colors">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mb-2">
-                    <Users className="w-5 h-5 text-green-600" />
+              <Link to="/customers">
+                <Button variant="outline" className="w-full h-20 flex-col">
+                  <div className="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center mb-1">
+                    <Users className="w-4 h-4 text-green-600" />
                   </div>
-                  <span className="text-sm font-medium">Add Client</span>
+                  <span className="text-xs font-medium">Add Client</span>
                 </Button>
               </Link>
-              <Link to="/subscriptions/new">
-                <Button variant="outline" className="w-full h-24 flex-col hover:bg-purple-50 hover:border-purple-200 transition-colors">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mb-2">
-                    <Calendar className="w-5 h-5 text-purple-600" />
+              <Link to="/subscriptions/create">
+                <Button variant="outline" className="w-full h-20 flex-col">
+                  <div className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center mb-1">
+                    <Calendar className="w-4 h-4 text-purple-600" />
                   </div>
-                  <span className="text-sm font-medium">New Subscription</span>
+                  <span className="text-xs font-medium">New Subscription</span>
                 </Button>
               </Link>
               <Link to="/services">
-                <Button variant="outline" className="w-full h-24 flex-col hover:bg-orange-50 hover:border-orange-200 transition-colors">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mb-2">
-                    <TrendingUp className="w-5 h-5 text-orange-600" />
+                <Button variant="outline" className="w-full h-20 flex-col">
+                  <div className="w-6 h-6 bg-orange-100 rounded-lg flex items-center justify-center mb-1">
+                    <TrendingUp className="w-4 h-4 text-orange-600" />
                   </div>
-                  <span className="text-sm font-medium">Manage Services</span>
+                  <span className="text-xs font-medium">Manage Services</span>
                 </Button>
               </Link>
             </div>

@@ -3,17 +3,44 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, ArrowLeft } from 'lucide-react';
+import { FileText, ArrowLeft, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { forgotPassword } = useAuth();
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Password reset requested for:', email);
-    setIsSubmitted(true);
+    setIsLoading(true);
+
+    try {
+      const success = await forgotPassword(email);
+      
+      if (success) {
+        setIsSubmitted(true);
+        toast({
+          title: "Email sent",
+          description: "If the email exists, a password reset link has been sent.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -50,8 +77,15 @@ export const ForgotPassword: React.FC = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Send Reset Link
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Reset Link'
+                )}
               </Button>
             </form>
           ) : (

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,28 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Save, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCreateSubscription } from '@/hooks/use-subscriptions';
+import { useCustomers } from '@/hooks/use-customers';
+import { useServices } from '@/hooks/use-services';
+import { apiService } from '@/services/api';
+import { toast } from 'sonner';
+
+// Helper for generic POST requests
+const postApi = async (url: string, data: any) => {
+  const token = localStorage.getItem('authToken');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(apiService['baseUrl'] + url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to create subscription');
+  return res.json();
+};
 
 export const CreateSubscription: React.FC = () => {
   const [subscriptionData, setSubscriptionData] = useState({
@@ -32,18 +53,81 @@ export const CreateSubscription: React.FC = () => {
     discountRate: '',
     taxRate: '',
     notes: '',
+    serviceIds: [] as string[],
   });
 
-  const clients = [
-    { id: '1', name: 'Acme Corp' },
-    { id: '2', name: 'Tech Solutions Ltd' },
-    { id: '3', name: 'Digital Agency Inc' },
-    { id: '4', name: 'StartupXYZ' },
-  ];
+  const createSubscriptionMutation = useCreateSubscription();
+  const { data: customersData, isLoading: customersLoading } = useCustomers();
+  const customers = customersData?.data?.items || [];
+  const { data: servicesData, isLoading: servicesLoading } = useServices(1, 100);
+  const services = servicesData?.data?.items || [];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [servicePage, setServicePage] = useState(1);
+  const servicesPerPage = 10;
+  const totalServicePages = Math.ceil(services.length / servicesPerPage);
+  const paginatedServices = services.slice((servicePage - 1) * servicesPerPage, servicePage * servicesPerPage);
+
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  // Automatically update amount when serviceIds change
+  useEffect(() => {
+    const selectedServices = services.filter(service =>
+      subscriptionData.serviceIds.includes(service.id.toString())
+    );
+    const total = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+    setSubscriptionData(prev => ({
+      ...prev,
+      amount: total.toString(),
+    }));
+  }, [subscriptionData.serviceIds, services]);
+
+  // Map billingCycle number to backend enum string
+  const getBillingCycleString = (cycle: number) => {
+    switch (cycle) {
+      case 1: return 'Monthly';
+      case 2: return 'Quarterly';
+      case 3: return 'SemiAnnually';
+      case 4: return 'Annually';
+      case 5: return 'OneTime';
+      default: return 'Other';
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Subscription created:', subscriptionData);
+    setSubmitting(true);
+    const customerId = Number(subscriptionData.clientId);
+    const selectedServices = services.filter(service => subscriptionData.serviceIds.includes(service.id.toString()));
+    const nowIso = new Date().toISOString();
+    try {
+      // Always use bulk endpoint, even for one service
+      if (selectedServices.length === 0) throw new Error('Please select at least one service');
+      const servicesPayload = selectedServices.map((service) => ({
+        serviceId: service.id,
+        amount: service.price,
+        billingCycle: service.billingCycle, // Send as number, not string
+        startDate: nowIso,
+        notes: subscriptionData.notes || "string",
+        autoRenew: subscriptionData.autoRenew,
+        discountPercentage: subscriptionData.discountRate ? Number(subscriptionData.discountRate) : 0,
+        discountAmount: 0 // Calculate if needed
+      }));
+      const bulkPayload = {
+        customerId,
+        services: servicesPayload,
+        generalNotes: subscriptionData.notes || "string",
+        autoRenew: subscriptionData.autoRenew
+      };
+      console.log('POST /api/subscription/bulk', JSON.stringify(bulkPayload, null, 2));
+      await postApi('/api/subscription/bulk', bulkPayload);
+      toast.success('Subscriptions created successfully!');
+      navigate('/subscriptions');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to create subscription');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const setupFee = parseFloat(subscriptionData.setupFee) || 0;
@@ -64,7 +148,7 @@ export const CreateSubscription: React.FC = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Create Subscription</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Create Subscription</h1>
             <p className="text-gray-600 mt-1">Set up a new recurring billing subscription</p>
           </div>
         </div>
@@ -79,31 +163,62 @@ export const CreateSubscription: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client">Client</Label>
-                <Select value={subscriptionData.clientId} onValueChange={(value) => setSubscriptionData({ ...subscriptionData, clientId: value })}>
+                <Label htmlFor="customer">Customer</Label>
+                <Select value={subscriptionData.clientId} onValueChange={value => setSubscriptionData({ ...subscriptionData, clientId: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a client" />
+                    <SelectValue placeholder={customersLoading ? 'Loading...' : 'Select a customer'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id.toString()}>
+                        {customer.customerType === 1
+                          ? customer.organizationName
+                          : `${customer.firstName} ${customer.lastName}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="planName">Plan Name</Label>
-                <Input
-                  id="planName"
-                  value={subscriptionData.planName}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, planName: e.target.value })}
-                  placeholder="e.g., Professional Plan"
-                  required
-                />
-              </div>
+            {/* After the client dropdown, add the multi-select for services with pagination */}
+            <div className="space-y-2">
+              <Label>Services</Label>
+              {servicesLoading ? (
+                <div>Loading services...</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {paginatedServices.map(service => (
+                      <label key={service.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={subscriptionData.serviceIds.includes(service.id.toString())}
+                          onChange={e => {
+                            const checked = e.target.checked;
+                            setSubscriptionData(prev => ({
+                              ...prev,
+                              serviceIds: checked
+                                ? [...(prev.serviceIds || []), service.id.toString()]
+                                : (prev.serviceIds || []).filter(id => id !== service.id.toString())
+                            }));
+                          }}
+                        />
+                        <span>{service.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <Button type="button" variant="outline" size="sm" disabled={servicePage === 1} onClick={() => setServicePage(p => Math.max(1, p - 1))}>
+                      Previous
+                    </Button>
+                    <span className="text-xs text-gray-600">Page {servicePage} of {totalServicePages}</span>
+                    <Button type="button" variant="outline" size="sm" disabled={servicePage === totalServicePages} onClick={() => setServicePage(p => Math.min(totalServicePages, p + 1))}>
+                      Next
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -116,144 +231,31 @@ export const CreateSubscription: React.FC = () => {
                 rows={3}
               />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Pricing */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pricing & Billing</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={subscriptionData.amount}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, amount: e.target.value })}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={subscriptionData.currency} onValueChange={(value) => setSubscriptionData({ ...subscriptionData, currency: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="interval">Billing Interval</Label>
-                <Select value={subscriptionData.interval} onValueChange={(value) => setSubscriptionData({ ...subscriptionData, interval: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly</SelectItem>
-                    <SelectItem value="annually">Annually</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="setupFee">Setup Fee (Optional)</Label>
-                <Input
-                  id="setupFee"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={subscriptionData.setupFee}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, setupFee: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="discountRate">Discount (%)</Label>
+                <Label htmlFor="discountRate">Discount Rate (%)</Label>
                 <Input
                   id="discountRate"
                   type="number"
                   min="0"
                   max="100"
-                  step="0.1"
+                  step="0.01"
                   value={subscriptionData.discountRate}
                   onChange={(e) => setSubscriptionData({ ...subscriptionData, discountRate: e.target.value })}
                   placeholder="0"
                 />
               </div>
-
+              
               <div className="space-y-2">
-                <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <Label htmlFor="notes">Notes</Label>
                 <Input
-                  id="taxRate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={subscriptionData.taxRate}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, taxRate: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Advanced Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Advanced Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={subscriptionData.startDate}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, startDate: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="trialDays">Trial Period (Days)</Label>
-                <Input
-                  id="trialDays"
-                  type="number"
-                  min="0"
-                  value={subscriptionData.trialDays}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, trialDays: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="maxCycles">Max Billing Cycles</Label>
-                <Input
-                  id="maxCycles"
-                  type="number"
-                  min="1"
-                  value={subscriptionData.maxCycles}
-                  onChange={(e) => setSubscriptionData({ ...subscriptionData, maxCycles: e.target.value })}
-                  placeholder="Unlimited"
+                  id="notes"
+                  type="text"
+                  value={subscriptionData.notes}
+                  onChange={(e) => setSubscriptionData({ ...subscriptionData, notes: e.target.value })}
+                  placeholder="Additional notes"
                 />
               </div>
             </div>
@@ -264,18 +266,7 @@ export const CreateSubscription: React.FC = () => {
                 checked={subscriptionData.autoRenew}
                 onCheckedChange={(checked) => setSubscriptionData({ ...subscriptionData, autoRenew: checked })}
               />
-              <Label htmlFor="autoRenew">Auto-renew subscription</Label>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={subscriptionData.notes}
-                onChange={(e) => setSubscriptionData({ ...subscriptionData, notes: e.target.value })}
-                placeholder="Additional notes about this subscription"
-                rows={3}
-              />
+              <Label htmlFor="autoRenew">Auto Renew</Label>
             </div>
           </CardContent>
         </Card>
@@ -288,42 +279,22 @@ export const CreateSubscription: React.FC = () => {
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Base Amount:</span>
-                <span>${amount.toFixed(2)} {subscriptionData.currency}</span>
+                <span className="text-gray-600">Amount:</span>
+                <span>{Number(subscriptionData.amount).toLocaleString()} MWK</span>
               </div>
-              {parseFloat(subscriptionData.discountRate) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Discount ({subscriptionData.discountRate}%):</span>
-                  <span className="text-red-600">-${discountAmount.toFixed(2)}</span>
-                </div>
-              )}
-              {parseFloat(subscriptionData.taxRate) > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax ({subscriptionData.taxRate}%):</span>
-                  <span>${taxAmount.toFixed(2)}</span>
-                </div>
-              )}
-              {setupFee > 0 && (
+              {Number(subscriptionData.setupFee) > 0 && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Setup Fee (one-time):</span>
-                  <span>${setupFee.toFixed(2)}</span>
+                  <span>{Number(subscriptionData.setupFee).toLocaleString()} MWK</span>
                 </div>
               )}
-              <div className="border-t pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold">
-                    Total per {subscriptionData.interval.replace('ly', '')}:
-                  </span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    ${(totalAmount - setupFee).toFixed(2)} {subscriptionData.currency}
-                  </span>
-                </div>
-                {setupFee > 0 && (
-                  <div className="flex justify-between text-sm text-gray-600 mt-1">
-                    <span>First payment (including setup):</span>
-                    <span>${totalAmount.toFixed(2)} {subscriptionData.currency}</span>
-                  </div>
-                )}
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold">Total:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  {(
+                    Number(subscriptionData.amount) + (Number(subscriptionData.setupFee) || 0)
+                  ).toLocaleString()} MWK
+                </span>
               </div>
             </div>
           </CardContent>
@@ -334,9 +305,9 @@ export const CreateSubscription: React.FC = () => {
           <Link to="/subscriptions">
             <Button type="button" variant="outline">Cancel</Button>
           </Link>
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-            <Save className="w-4 h-4 mr-2" />
-            Create Subscription
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createSubscriptionMutation.status === 'pending' || submitting}>
+            {submitting ? <span className="animate-spin mr-2 w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block"></span> : <Save className="w-4 h-4 mr-2" />}
+            {submitting ? 'Creating...' : 'Create Subscription'}
           </Button>
         </div>
       </form>

@@ -1,28 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, FileText } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Eye, EyeOff, FileText, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const ResetPassword: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isReset, setIsReset] = useState(false);
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
   });
-  const [isReset, setIsReset] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [searchParams] = useSearchParams();
+  const rawToken = searchParams.get('token');
+  const email = searchParams.get('email');
+  
+  // Decode the token properly
+  const token = rawToken ? decodeURIComponent(rawToken) : null;
+  
+  // Debug logging
+  console.log('Raw token from URL:', rawToken);
+  console.log('Decoded token:', token);
+  console.log('Token length:', token?.length);
+
+  const { resetPassword } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!token) {
+      toast({
+        title: "Invalid reset link",
+        description: "The password reset link is invalid or has expired.",
+        variant: "destructive",
+      });
+      navigate('/forgot-password');
+    }
+  }, [token, navigate, toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same.",
+        variant: "destructive",
+      });
       return;
     }
-    console.log('Password reset:', formData);
-    setIsReset(true);
+
+    // Password validation
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for uppercase, lowercase, number, and special character
+    const hasUppercase = /[A-Z]/.test(formData.password);
+    const hasLowercase = /[a-z]/.test(formData.password);
+    const hasNumber = /\d/.test(formData.password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+    
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      toast({
+        title: "Password requirements not met",
+        description: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!token) {
+      toast({
+        title: "Invalid reset link",
+        description: "The password reset link is invalid or has expired.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const success = await resetPassword(token, formData.password, formData.confirmPassword, email || '');
+      
+      if (success) {
+        setIsReset(true);
+        toast({
+          title: "Password reset successful",
+          description: "Your password has been reset successfully.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      
+      toast({
+        title: "Reset failed",
+        description: error.message || "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,6 +156,9 @@ export const ResetPassword: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
+                <p className="text-xs text-gray-500">
+                  Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -90,8 +184,15 @@ export const ResetPassword: React.FC = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                Reset Password
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  'Reset Password'
+                )}
               </Button>
             </form>
           ) : (

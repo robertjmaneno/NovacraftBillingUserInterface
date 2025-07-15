@@ -3,19 +3,101 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, FileText, Receipt, Calculator, CreditCard } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Eye, EyeOff, FileText, Receipt, Calculator, CreditCard, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+
+  // Get the intended destination from location state
+  const from = location.state?.from?.pathname || '/';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    console.log('handleSubmit function called');
     e.preventDefault();
-    console.log('Login attempt:', formData);
+    console.log('Login form submitted with:', formData);
+    setIsLoading(true);
+
+    try {
+      console.log('Calling login function...');
+      const success = await login(formData.email, formData.password);
+      console.log('Login result:', success);
+      
+      if (success) {
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+        navigate(from, { replace: true });
+      } else {
+        // MFA is required
+        toast({
+          title: "MFA verification required",
+          description: "Please check your email for the verification code.",
+        });
+        navigate('/mfa', { replace: true });
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.message) {
+        // Check for account lock/suspension messages
+        const errorLower = error.message.toLowerCase();
+        if (errorLower.includes('lock') || 
+            errorLower.includes('suspended') || 
+            errorLower.includes('disabled') ||
+            errorLower.includes('account')) {
+          toast({
+            title: "Account Locked",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
+        } else if (error.message.includes('Password change required')) {
+          // Handle password change requirement
+          toast({
+            title: "Password change required",
+            description: "Please change your password on first login.",
+            variant: "destructive",
+          });
+          // You might want to redirect to a password change page
+          return;
+        } else if (error.message.includes('MFA verification required')) {
+          // Handle MFA requirement
+          toast({
+            title: "MFA verification required",
+            description: "Please complete two-factor authentication.",
+            variant: "destructive",
+          });
+          // You might want to redirect to MFA page
+          return;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: "Login failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -52,7 +134,15 @@ export const Login: React.FC = () => {
 
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-4"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  console.log('Enter key pressed in form');
+                }
+              }}
+            >
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -62,6 +152,7 @@ export const Login: React.FC = () => {
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
@@ -75,6 +166,7 @@ export const Login: React.FC = () => {
                     value={formData.password}
                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                     required
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -82,6 +174,7 @@ export const Login: React.FC = () => {
                     size="sm"
                     className="absolute right-2 top-1/2 transform -translate-y-1/2"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
@@ -94,8 +187,20 @@ export const Login: React.FC = () => {
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full">
-                Sign In
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+                onClick={() => console.log('Sign In button clicked')}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 

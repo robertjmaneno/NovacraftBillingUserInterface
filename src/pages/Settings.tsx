@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,21 +18,36 @@ import {
   Smartphone,
   Mail,
   Save,
-  Upload
+  Upload,
+  Calendar
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { apiService } from '@/services/api';
+import { PasswordChangeDialog } from '@/components/PasswordChangeDialog';
+import { useMfaStatus, useToggleMfa } from '@/hooks/use-mfa';
+import { getUserInitials } from '@/lib/utils';
 
 export const Settings: React.FC = () => {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
   const [profile, setProfile] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@company.com',
-    phone: '+1 (555) 123-4567',
-    company: 'Billify Inc.',
-    avatar: ''
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phone: user?.phoneNumber || '',
+    company: user?.company || '',
+    avatar: user?.avatar || ''
   });
 
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+
+  // MFA hooks
+  const { data: mfaStatus, isLoading: mfaLoading, error: mfaError } = useMfaStatus(user?.id);
+  const toggleMfaMutation = useToggleMfa();
+
   const [security, setSecurity] = useState({
-    mfaEnabled: false,
+    mfaEnabled: user?.twoFactorEnabled || false,
     emailNotifications: true,
     smsNotifications: false,
     loginAlerts: true
@@ -41,8 +56,8 @@ export const Settings: React.FC = () => {
   const [preferences, setPreferences] = useState({
     theme: 'light',
     language: 'en',
-    timezone: 'America/New_York',
-    currency: 'USD'
+    timezone: 'Africa/Blantyre',
+    currency: 'MWK'
   });
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,15 +71,107 @@ export const Settings: React.FC = () => {
     }
   };
 
+  // Update profile data when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phoneNumber || '',
+        company: user.company || '',
+        avatar: user.avatar || ''
+      });
+    }
+  }, [user]);
+
+  // Update MFA status when API data changes
+  useEffect(() => {
+    if (mfaStatus?.data?.enabled !== undefined) {
+      setSecurity(prev => ({
+        ...prev,
+        mfaEnabled: mfaStatus.data.enabled
+      }));
+    } else if (user?.twoFactorEnabled !== undefined) {
+      setSecurity(prev => ({
+        ...prev,
+        mfaEnabled: user.twoFactorEnabled
+      }));
+    }
+  }, [mfaStatus?.data?.enabled, user?.twoFactorEnabled]);
+
   const handleSave = () => {
-    console.log('Settings saved:', { profile, security, preferences });
+    toast.success('Settings saved successfully');
   };
+
+  const handleMfaToggle = async (enabled: boolean) => {
+    try {
+      await toggleMfaMutation.mutateAsync(enabled);
+      
+      toast.success(`MFA ${enabled ? 'enabled' : 'disabled'} successfully`);
+    } catch (error) {
+      console.error('Failed to toggle MFA:', error);
+      toast.error('Failed to update MFA settings');
+    }
+  };
+
+  const handleChangePassword = () => {
+    setPasswordDialogOpen(true);
+  };
+
+  const formatLastPasswordChange = () => {
+    if (!user?.lastPasswordChange) {
+      return 'Never';
+    }
+    
+    const lastChange = new Date(user.lastPasswordChange);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - lastChange.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return lastChange.toLocaleDateString('en-US', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="text-gray-500">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">Authentication required</div>
+            <p className="text-gray-600">Please log in to view settings.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
           <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
         </div>
         <Button onClick={handleSave}>
@@ -103,7 +210,7 @@ export const Settings: React.FC = () => {
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={profile.avatar} />
                   <AvatarFallback className="text-lg">
-                    {profile.firstName[0]}{profile.lastName[0]}
+                    {getUserInitials(profile.firstName, profile.lastName)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="space-y-2">
@@ -196,7 +303,8 @@ export const Settings: React.FC = () => {
                   </div>
                   <Switch
                     checked={security.mfaEnabled}
-                    onCheckedChange={(checked) => setSecurity(prev => ({ ...prev, mfaEnabled: checked }))}
+                    onCheckedChange={handleMfaToggle}
+                    disabled={toggleMfaMutation.isPending || mfaLoading}
                   />
                 </div>
 
@@ -212,6 +320,18 @@ export const Settings: React.FC = () => {
                     <Button variant="outline" size="sm">
                       Configure MFA
                     </Button>
+                  </div>
+                )}
+
+                {!security.mfaEnabled && (
+                  <div className="p-4 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Shield className="w-4 h-4 text-yellow-600" />
+                      <span className="font-medium text-yellow-900">MFA is disabled</span>
+                    </div>
+                    <p className="text-sm text-yellow-700">
+                      Enable multi-factor authentication for enhanced security.
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -241,12 +361,15 @@ export const Settings: React.FC = () => {
                 <Separator />
 
                 <div className="space-y-2">
-                  <Button variant="outline">
-                    Change Password
-                  </Button>
-                  <p className="text-sm text-gray-600">
-                    Last changed 30 days ago
-                  </p>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" onClick={handleChangePassword}>
+                      Change Password
+                    </Button>
+                    <div className="flex items-center space-x-1 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>Last changed {formatLastPasswordChange()}</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -312,8 +435,6 @@ export const Settings: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="en">English</option>
-                    <option value="es">Spanish</option>
-                    <option value="fr">French</option>
                   </select>
                 </div>
 
@@ -325,10 +446,7 @@ export const Settings: React.FC = () => {
                     onChange={(e) => setPreferences(prev => ({ ...prev, timezone: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="America/New_York">Eastern Time</option>
-                    <option value="America/Chicago">Central Time</option>
-                    <option value="America/Denver">Mountain Time</option>
-                    <option value="America/Los_Angeles">Pacific Time</option>
+                    <option value="Africa/Blantyre">Malawi Time (CAT)</option>
                   </select>
                 </div>
               </div>
@@ -341,16 +459,18 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setPreferences(prev => ({ ...prev, currency: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="GBP">GBP - British Pound</option>
-                  <option value="CAD">CAD - Canadian Dollar</option>
+                  <option value="MWK">MWK - Malawi Kwacha</option>
                 </select>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <PasswordChangeDialog 
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+      />
     </div>
   );
 };

@@ -16,20 +16,24 @@ import {
   LogOut,
   Settings
 } from 'lucide-react';
+import { ConnectionStatus } from './ConnectionStatus';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserInitials } from '@/lib/utils';
 
 export const Header: React.FC = () => {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const getPageTitle = (pathname: string) => {
     const routes: { [key: string]: string } = {
       '/': 'Dashboard',
       '/invoices': 'Invoices',
-      '/invoices/new': 'Create Invoice',
+              '/invoices/create': 'Create Invoice',
       '/invoices/template': 'Invoice Template',
-      '/clients': 'Clients',
+      '/customers': 'Customers',
       '/services': 'Services',
       '/subscriptions': 'Subscriptions',
-      '/subscriptions/new': 'Create Subscription',
+              '/subscriptions/create': 'Create Subscription',
       '/payments': 'Payments',
       '/reports': 'Reports',
       '/users': 'User Management',
@@ -48,6 +52,9 @@ export const Header: React.FC = () => {
         </h1>
 
         <div className="flex items-center space-x-4">
+          {/* Connection Status - Only show in development */}
+          {import.meta.env.DEV && <ConnectionStatus />}
+          
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -83,17 +90,21 @@ export const Header: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="" alt="User" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src={user?.avatar} alt="User" />
+                  <AvatarFallback>
+                    {user ? getUserInitials(user.firstName, user.lastName) : 'U'}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">John Doe</p>
+                  <p className="text-sm font-medium leading-none">
+                    {user ? `${user.firstName} ${user.lastName}` : 'User'}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    john.doe@company.com
+                    {user?.email || 'user@example.com'}
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -111,7 +122,7 @@ export const Header: React.FC = () => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem className="cursor-pointer" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

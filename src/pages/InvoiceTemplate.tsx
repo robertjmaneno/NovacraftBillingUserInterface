@@ -114,7 +114,7 @@ export const InvoiceTemplate: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Invoice Template</h1>
+                      <h1 className="text-2xl font-semibold text-gray-900">Invoice Template</h1>
           <p className="text-gray-600 mt-1">Customize your invoice design and branding</p>
         </div>
         <div className="flex space-x-2">
@@ -239,7 +239,6 @@ export const InvoiceTemplate: React.FC = () => {
                     <SelectContent>
                       <SelectItem value="Poppins">Poppins</SelectItem>
                       <SelectItem value="Inter">Inter</SelectItem>
-                      <SelectItem value="Roboto">Roboto</SelectItem>
                       <SelectItem value="Arial">Arial</SelectItem>
                       <SelectItem value="Georgia">Georgia</SelectItem>
                       <SelectItem value="Times">Times New Roman</SelectItem>
