@@ -89,37 +89,54 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
   // Fetch payment stats
-  const { data: paymentStats, isLoading: paymentStatsLoading } = useQuery({
+  const { data: paymentStats, isLoading: paymentStatsLoading, error: paymentStatsError } = useQuery({
     queryKey: ['payment-stats'],
     queryFn: () => apiService.getPaymentStats(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch total subscription revenue
-  const { data: subscriptionRevenue, isLoading: subscriptionRevenueLoading } = useQuery({
+  const { data: subscriptionRevenue, isLoading: subscriptionRevenueLoading, error: subscriptionRevenueError } = useQuery({
     queryKey: ['subscription-revenue'],
     queryFn: () => apiService.getTotalSubscriptionRevenue(),
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch customers count
-  const { data: customersData, isLoading: customersLoading } = useQuery({
+  const { data: customersData, isLoading: customersLoading, error: customersError } = useQuery({
     queryKey: ['customers-count'],
     queryFn: () => apiService.getCustomers({ pageSize: 1 }), // Just get count
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch invoices count and recent invoices
-  const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
+  const { data: invoicesData, isLoading: invoicesLoading, error: invoicesError } = useQuery({
     queryKey: ['invoices-data'],
     queryFn: () => apiService.getInvoices({ pageSize: 5 }), // Get latest 5 invoices
     staleTime: 5 * 60 * 1000,
   });
 
-  const isLoading = paymentStatsLoading || subscriptionRevenueLoading || customersLoading || invoicesLoading;
+  // Fetch outstanding amount from reports endpoint
+  const { data: outstandingAmountData, isLoading: outstandingAmountLoading, error: outstandingAmountError } = useQuery({
+    queryKey: ['report-outstanding-amount'],
+    queryFn: () => apiService.getReportOutstandingAmount(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isLoading = paymentStatsLoading || subscriptionRevenueLoading || customersLoading || invoicesLoading || outstandingAmountLoading;
+  const error = paymentStatsError || subscriptionRevenueError || customersError || invoicesError || outstandingAmountError;
 
   if (isLoading) {
     return <DashboardShimmer />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        Unable to load dashboard data. Please try again later.<br />
+        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
   }
 
   // Calculate stats from API data
@@ -139,8 +156,8 @@ export const Dashboard: React.FC = () => {
       trend: 'up' as const,
     },
     {
-      title: 'Pending Payments',
-      value: `${Number(paymentStats?.data?.pending || 0).toLocaleString()} MWK`,
+      title: 'Outstanding Payments',
+      value: `${Number(outstandingAmountData?.data || 0).toLocaleString()} MWK`,
       change: '+0%',
       changeType: 'negative' as const,
       icon: AlertCircle,

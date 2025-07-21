@@ -49,7 +49,7 @@ function mapCustomerToFormData(customer) {
       issueDate: doc.issueDate || '',
       issuingAuthority: doc.issuingAuthority || '',
       tags: doc.tags || '',
-      // file: undefined, // Can't prefill file input for security reasons
+ 
     })),
   };
 }

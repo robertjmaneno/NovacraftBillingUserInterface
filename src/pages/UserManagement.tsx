@@ -201,25 +201,28 @@ export const UserManagement: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Never';
-    
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
+    // Compare only the date parts (local time)
+    const dateYMD = date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate();
+    const nowYMD = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+    if (dateYMD === nowYMD) {
       return 'Today';
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString('en-US', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      });
     }
+    // Yesterday check
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yestYMD = yesterday.getFullYear() + '-' + (yesterday.getMonth()+1) + '-' + yesterday.getDate();
+    if (dateYMD === yestYMD) {
+      return 'Yesterday';
+    }
+    // Days ago
+    const diffTime = now.setHours(0,0,0,0) - date.setHours(0,0,0,0);
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    }
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   // Check if user has permission to view users

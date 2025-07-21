@@ -36,6 +36,12 @@ export const Login: React.FC = () => {
       console.log('Login result:', success);
       
       if (success) {
+        // Get the user object from localStorage (set by AuthContext)
+        const user = JSON.parse(localStorage.getItem('authUser') || '{}');
+        if (user.mustChangePassword) {
+          navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
+          return;
+        }
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -74,7 +80,8 @@ export const Login: React.FC = () => {
             description: "Please change your password on first login.",
             variant: "destructive",
           });
-          // You might want to redirect to a password change page
+          // Redirect to reset password page for first login
+          navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
           return;
         } else if (error.message.includes('MFA verification required')) {
           // Handle MFA requirement

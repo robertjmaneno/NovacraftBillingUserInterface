@@ -189,6 +189,15 @@ export const MFA: React.FC = () => {
     }
   };
 
+  if (!email) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        Unable to load MFA data. Please try again later.<br />
+        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">

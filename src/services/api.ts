@@ -795,28 +795,8 @@ class ApiService {
       console.log('API Response for', url, ':', responseData);
       return responseData;
     } catch (error) {
-      // Handle JSON parsing errors
-      if (error instanceof SyntaxError && error.message.includes('Unexpected end of JSON input')) {
-        console.log('Empty response received, treating as success');
-        return { success: true, message: 'Operation completed successfully' } as T;
-      }
-      console.error('API request failed:', error);
-      
-      // Provide more helpful error messages for development
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        if (config.isDevelopment) {
-          throw new Error(
-            `Unable to connect to the API server at ${this.baseUrl}. ` +
-            `Please ensure the backend server is running and accessible. ` +
-            `If using HTTPS, you may need to accept the self-signed certificate. ` +
-            `Error: ${error.message}`
-          );
-        } else {
-          throw new Error('Unable to connect to the server. Please try again later.');
-        }
-      }
-      
-      throw error;
+      // Always throw a generic error for network issues
+      throw new Error('Unable to connect to the server. Please try again later.');
     }
   }
 
@@ -924,6 +904,13 @@ class ApiService {
 
   async getMfaStatus(userId: string): Promise<MfaStatusResponse> {
     return this.request<MfaStatusResponse>(`/api/Auth/mfa-status/${userId}`);
+  }
+
+  async forcePasswordChangeUnauthenticated(data: { email: string; currentPassword: string; newPassword: string }): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/Auth/force-password-change-unauthenticated`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // User Management endpoints
@@ -1660,6 +1647,18 @@ class ApiService {
     return this.request<any>('/api/invoice/create-invoice-firsttime', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async getInvoiceTemplate(): Promise<{ success: boolean; data: any }> {
+    return this.request<{ success: boolean; data: any }>(`/api/invoice-template`);
+  }
+
+  async updateInvoiceTemplate(template: any): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/api/invoice-template`, {
+      method: 'PUT',
+      body: JSON.stringify(template),
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 

@@ -93,6 +93,16 @@ export const Reports: React.FC = () => {
     return <div className="text-red-600 text-center mt-10">You do not have permission to view reports.</div>;
   }
 
+  // Add a generic error UI for top-level errors
+  if (errorTotalRevenue && !isLoadingTotalRevenue) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        Unable to load report data. Please try again later.<br />
+        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
+  }
+
   // Loading state
   const isLoading =
     isLoadingTotalRevenue ||
@@ -312,7 +322,7 @@ export const Reports: React.FC = () => {
                 ) : (
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyRevenue}>
+                      <LineChart data={monthlyRevenue}>
                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                         <XAxis dataKey="month" />
                         <YAxis />
@@ -325,8 +335,8 @@ export const Reports: React.FC = () => {
                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                           }}
                         />
-                        <Bar dataKey="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
+                        <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 )}

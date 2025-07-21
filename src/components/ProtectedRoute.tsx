@@ -31,5 +31,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Force password reset if required
+  if (user?.mustChangePassword) {
+    return <Navigate to={`/reset-password?firstLogin=1&email=${encodeURIComponent(user.email)}`} replace />;
+  }
+
   return <>{children}</>;
 }; 

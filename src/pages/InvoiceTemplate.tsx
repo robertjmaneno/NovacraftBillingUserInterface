@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,8 @@ import {
   Mail,
   Phone
 } from 'lucide-react';
+import { apiService } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface InvoiceTemplate {
   id: string;
@@ -86,6 +88,21 @@ const mockInvoiceData = {
 export const InvoiceTemplate: React.FC = () => {
   const [template, setTemplate] = useState<InvoiceTemplate>(mockTemplate);
   const [activeTab, setActiveTab] = useState<'design' | 'preview'>('design');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setLoading(true);
+    apiService.getInvoiceTemplate()
+      .then(res => {
+        if (res.success && res.data) setTemplate(res.data);
+      })
+      .catch(() => {
+        toast({ title: 'Failed to load template', variant: 'destructive' });
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -98,8 +115,16 @@ export const InvoiceTemplate: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
-    console.log('Saving template:', template);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiService.updateInvoiceTemplate(template);
+      toast({ title: 'Template saved successfully' });
+    } catch (e) {
+      toast({ title: 'Failed to save template', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDownload = () => {
@@ -109,6 +134,10 @@ export const InvoiceTemplate: React.FC = () => {
   const handlePrint = () => {
     window.print();
   };
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500">Loading template...</div>;
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -126,9 +155,8 @@ export const InvoiceTemplate: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Download PDF
           </Button>
-          <Button onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" />
-            Save Template
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <span className="flex items-center"><span className="animate-spin mr-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full"></span>Saving...</span> : <><Save className="w-4 h-4 mr-2" />Save Template</>}
           </Button>
         </div>
       </div>
@@ -384,16 +412,8 @@ export const InvoiceTemplate: React.FC = () => {
                         <p>{template.companyInfo.address}</p>
                         <p>{template.companyInfo.city}</p>
                         <p>{template.companyInfo.country}</p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <div className="flex items-center space-x-1">
-                            <Phone className="w-4 h-4" />
-                            <span>{template.companyInfo.phone}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Mail className="w-4 h-4" />
-                            <span>{template.companyInfo.email}</span>
-                          </div>
-                        </div>
+                        <p>{template.companyInfo.phone}</p>
+                        <p>{template.companyInfo.email}</p>
                       </div>
                     </div>
                   </div>

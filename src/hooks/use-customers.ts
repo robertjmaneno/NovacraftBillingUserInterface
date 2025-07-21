@@ -13,7 +13,7 @@ export const useCustomers = (params: CustomerSearchParams = {}) => {
 };
 
 // Hook to get a single customer by ID
-export const useCustomer = (id: number) => {
+export const useCustomer = (id: number, p0: { enabled: boolean; }) => {
   return useQuery({
     queryKey: ['customer', id],
     queryFn: () => apiService.getCustomerById(id),

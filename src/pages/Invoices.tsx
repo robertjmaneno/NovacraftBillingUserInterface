@@ -82,7 +82,12 @@ export const Invoices: React.FC = () => {
     return <TableShimmer rows={5} columns={7} />;
   }
   if (isError) {
-    return <div className="p-8 text-center text-red-500">Failed to load invoices.</div>;
+    return (
+      <div className="p-8 text-center text-red-500">
+        Unable to load invoices. Please try again later.<br />
+        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    );
   }
 
   return (

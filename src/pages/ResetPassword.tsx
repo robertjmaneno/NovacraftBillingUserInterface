@@ -21,6 +21,7 @@ export const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const rawToken = searchParams.get('token');
   const email = searchParams.get('email');
+  const isFirstLogin = searchParams.get('firstLogin') === '1';
   
   // Decode the token properly
   const token = rawToken ? decodeURIComponent(rawToken) : null;
@@ -31,11 +32,18 @@ export const ResetPassword: React.FC = () => {
   console.log('Token length:', token?.length);
 
   const { resetPassword } = useAuth();
+  const [firstLoginLoading, setFirstLoginLoading] = useState(false);
+  const [firstLoginReset, setFirstLoginReset] = useState(false);
+  const [firstLoginForm, setFirstLoginForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!token) {
+    if (!isFirstLogin && !token) {
       toast({
         title: "Invalid reset link",
         description: "The password reset link is invalid or has expired.",
@@ -43,7 +51,7 @@ export const ResetPassword: React.FC = () => {
       });
       navigate('/forgot-password');
     }
-  }, [token, navigate, toast]);
+  }, [token, isFirstLogin, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +124,67 @@ export const ResetPassword: React.FC = () => {
     }
   };
 
+  // First login password reset handler
+  const handleFirstLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (firstLoginForm.newPassword !== firstLoginForm.confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Password validation
+    if (firstLoginForm.newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const hasUppercase = /[A-Z]/.test(firstLoginForm.newPassword);
+    const hasLowercase = /[a-z]/.test(firstLoginForm.newPassword);
+    const hasNumber = /\d/.test(firstLoginForm.newPassword);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(firstLoginForm.newPassword);
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      toast({
+        title: "Password requirements not met",
+        description: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setFirstLoginLoading(true);
+    try {
+      // Call backend force-password-change-unauthenticated endpoint
+      const { apiService } = await import('../services/api');
+      const resp = await apiService.forcePasswordChangeUnauthenticated({
+        email: email || '',
+        currentPassword: firstLoginForm.currentPassword,
+        newPassword: firstLoginForm.newPassword
+      });
+      if (resp.success) {
+        setFirstLoginReset(true);
+        toast({
+          title: "Password changed successfully",
+          description: "You can now log in with your new password.",
+        });
+      } else {
+        throw new Error(resp.message);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Reset failed",
+        description: error.message || "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setFirstLoginLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -129,11 +198,81 @@ export const ResetPassword: React.FC = () => {
           </div>
           <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
           <p className="text-gray-600">
-            {isReset ? "Password reset successful!" : "Enter your new password"}
+            {isFirstLogin
+              ? "You must reset your password before accessing the system for the first time."
+              : isReset
+                ? "Password reset successful!"
+                : "Enter your new password"}
           </p>
         </CardHeader>
         <CardContent>
-          {!isReset ? (
+          {isFirstLogin ? (
+            !firstLoginReset ? (
+              <form onSubmit={handleFirstLoginSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email || ''}
+                    disabled
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    placeholder="Enter your current (temporary) password"
+                    value={firstLoginForm.currentPassword}
+                    onChange={e => setFirstLoginForm(f => ({ ...f, currentPassword: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="Enter new password"
+                    value={firstLoginForm.newPassword}
+                    onChange={e => setFirstLoginForm(f => ({ ...f, newPassword: e.target.value }))}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={firstLoginForm.confirmPassword}
+                    onChange={e => setFirstLoginForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={firstLoginLoading}>
+                  {firstLoginLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Resetting...
+                    </>
+                  ) : (
+                    'Reset Password'
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <div className="text-center space-y-4">
+                <p className="text-sm text-gray-600">
+                  Password changed successfully! You can now <Link to="/login" className="text-blue-600 underline">log in</Link> with your new password.
+                </p>
+              </div>
+            )
+          ) : !isReset ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
@@ -160,7 +299,6 @@ export const ResetPassword: React.FC = () => {
                   Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
                 </p>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
@@ -183,7 +321,6 @@ export const ResetPassword: React.FC = () => {
                   </Button>
                 </div>
               </div>
-
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
