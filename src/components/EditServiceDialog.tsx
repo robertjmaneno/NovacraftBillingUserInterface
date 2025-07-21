@@ -45,11 +45,10 @@ export const EditServiceDialog: React.FC<EditServiceDialogProps> = ({
     termsAndConditions: '',
   });
 
-  // Separate state for input display values to avoid leading zeros
+ 
   const [priceInput, setPriceInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
 
-  // Populate form when service changes
   useEffect(() => {
     if (service) {
       setFormData({
@@ -113,18 +112,18 @@ export const EditServiceDialog: React.FC<EditServiceDialogProps> = ({
   };
 
   const handlePriceChange = (value: string) => {
-    // Remove all non-numeric characters except decimal point
+    
     const cleanValue = value.replace(/[^\d.]/g, '');
     
-    // Prevent multiple decimal points
+ 
     const parts = cleanValue.split('.');
     if (parts.length > 2) {
-      return; // Don't update if there are multiple decimal points
+      return; 
     }
     
     // Limit to 2 decimal places
     if (parts[1] && parts[1].length > 2) {
-      return; // Don't update if more than 2 decimal places
+      return; 
     }
     
     // Update the display value
@@ -142,18 +141,18 @@ export const EditServiceDialog: React.FC<EditServiceDialogProps> = ({
     // Prevent multiple decimal points
     const parts = cleanValue.split('.');
     if (parts.length > 2) {
-      return; // Don't update if there are multiple decimal points
+      return; 
     }
     
     // Limit to 1 decimal place
     if (parts[1] && parts[1].length > 1) {
-      return; // Don't update if more than 1 decimal place
+      return; 
     }
     
     // Limit to 100%
     const numValue = parseFloat(cleanValue) || 0;
     if (numValue > 100) {
-      return; // Don't update if greater than 100
+      return; 
     }
     
     // Update the display value

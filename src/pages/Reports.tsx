@@ -33,14 +33,14 @@ export const Reports: React.FC = () => {
   const [timeRange, setTimeRange] = useState('6months');
   const months = timeRange === '1month' ? 1 : timeRange === '3months' ? 3 : timeRange === '6months' ? 6 : timeRange === '1year' ? 12 : 6;
 
-  // Queries
+
   const {
     data: totalRevenueData,
     isLoading: isLoadingTotalRevenue,
     error: errorTotalRevenue
   } = useQuery({ queryKey: ['report-total-revenue'], queryFn: () => apiService.getReportTotalRevenue() });
 
-  // Use the same endpoint as Dashboard for total customers
+ 
   const {
     data: customersData,
     isLoading: isLoadingCustomers,
@@ -77,15 +77,14 @@ export const Reports: React.FC = () => {
     error: errorMonthlyRevenueTrend
   } = useQuery({ queryKey: ['report-monthly-revenue-trend', months], queryFn: () => apiService.getReportMonthlyRevenueTrend(months) });
 
-  // Add getReportTotalInvoices to apiService if not present
-  // Use: apiService.getReportTotalInvoices()
+
   const {
     data: totalInvoicesData,
     isLoading: isLoadingTotalInvoices,
     error: errorTotalInvoices
   } = useQuery({ queryKey: ['report-total-invoices'], queryFn: () => apiService.getReportTotalInvoices() });
 
-  // Error handling (permission)
+
   const isForbidden = (...errs: any[]) => errs.some(e => (e && (e.status === 403 || (e.response && e.response.status === 403))));
   if (
     isForbidden(errorTotalRevenue, errorCustomers, errorOutstandingAmount, errorTopClients, errorInvoiceStatus, errorInvoiceVolumeTrend, errorMonthlyRevenueTrend)
@@ -93,7 +92,7 @@ export const Reports: React.FC = () => {
     return <div className="text-red-600 text-center mt-10">You do not have permission to view reports.</div>;
   }
 
-  // Add a generic error UI for top-level errors
+
   if (errorTotalRevenue && !isLoadingTotalRevenue) {
     return (
       <div className="p-8 text-center text-red-500">
@@ -113,7 +112,7 @@ export const Reports: React.FC = () => {
     isLoadingInvoiceVolumeTrend ||
     isLoadingMonthlyRevenueTrend;
 
-  // Helper for error display
+
   const renderError = (error: any, fallback: string) => (
     <div className="text-red-500 text-sm text-center py-2">{error?.message || fallback}</div>
   );
@@ -122,7 +121,7 @@ export const Reports: React.FC = () => {
   const totalRevenue = totalRevenueData?.data ?? 0;
   const totalInvoices = totalInvoicesData?.data ?? 0;
   const totalOutstanding = outstandingAmountData?.data ?? 0;
-  // Map statusData to expected structure
+
   const statusColorMap: Record<string, string> = {
     Paid: '#10B981',
     Sent: '#F59E0B',
@@ -133,13 +132,13 @@ export const Reports: React.FC = () => {
   };
   let statusData = (invoiceStatusData?.data ?? []).map((item: any) => ({
     name: item.status,
-    value: Math.round(item.percentage), // Show as whole number
+    value: Math.round(item.percentage), 
     color: statusColorMap[item.status] || '#6B7280',
     amount: item.totalAmount,
   }));
-  // Sort by percentage descending
+  
   statusData = statusData.sort((a, b) => b.value - a.value);
-  // Map topClients to expected structure
+  
   const topClients = (topClientsData?.data ?? []).map((item: any) => ({
     name: item.customerName,
     invoices: item.invoiceCount,
@@ -151,7 +150,7 @@ export const Reports: React.FC = () => {
     month: item.month,
     revenue: item.revenue,
     invoices: invoiceVolumeTrend[idx]?.invoiceCount ?? 0,
-    expenses: 0 // No expenses in API, keep as 0
+    expenses: 0 
   }));
 
   console.log('apiService:', apiService);
@@ -351,7 +350,7 @@ export const Reports: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {/* This chart uses the same monthlyRevenue data, expenses are always 0 */}
+               
                 {isLoadingMonthlyRevenueTrend ? (
                   <div className="h-64 w-full bg-gray-100 animate-pulse rounded" />
                 ) : errorMonthlyRevenueTrend ? (

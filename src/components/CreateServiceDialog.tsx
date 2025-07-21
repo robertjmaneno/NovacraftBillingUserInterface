@@ -44,7 +44,7 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
     termsAndConditions: '',
   });
 
-  // Separate state for input display values to avoid leading zeros
+ 
   const [priceInput, setPriceInput] = useState('');
   const [discountInput, setDiscountInput] = useState('');
 
@@ -107,36 +107,36 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
 
 
   const handlePriceChange = (value: string) => {
-    // Remove all non-numeric characters except decimal point
+   
     const cleanValue = value.replace(/[^\d.]/g, '');
     
-    // Prevent multiple decimal points
+
     const parts = cleanValue.split('.');
     if (parts.length > 2) {
-      return; // Don't update if there are multiple decimal points
+      return; 
     }
     
     // Limit to 2 decimal places
     if (parts[1] && parts[1].length > 2) {
-      return; // Don't update if more than 2 decimal places
+      return; 
     }
     
-    // Update the display value
+    
     setPriceInput(cleanValue);
     
-    // Update the form data with the numeric value
+    
     const numValue = parseFloat(cleanValue) || 0;
     setFormData({ ...formData, price: numValue });
   };
 
   const handleDiscountChange = (value: string) => {
-    // Remove all non-numeric characters except decimal point
+    
     const cleanValue = value.replace(/[^\d.]/g, '');
     
     // Prevent multiple decimal points
     const parts = cleanValue.split('.');
     if (parts.length > 2) {
-      return; // Don't update if there are multiple decimal points
+      return; 
     }
     
     // Limit to 1 decimal place
@@ -147,7 +147,7 @@ export const CreateServiceDialog: React.FC<CreateServiceDialogProps> = ({
     // Limit to 100%
     const numValue = parseFloat(cleanValue) || 0;
     if (numValue > 100) {
-      return; // Don't update if greater than 100
+      return; 
     }
     
     // Update the display value

@@ -703,7 +703,7 @@ class ApiService {
       ...options,
     };
 
-    // Add authorization header if token exists
+   
     const token = localStorage.getItem('authToken');
     if (token) {
       // Check if token is expired
@@ -712,9 +712,9 @@ class ApiService {
         console.log('Token is expired, clearing auth data');
         localStorage.removeItem('authToken');
         localStorage.removeItem('authUser');
-        // Redirect to login instead of throwing error
+        
         window.location.href = '/login';
-        return {} as T; // Return empty object to prevent further processing
+        return {} as T; 
       }
       
       requestConfig.headers = {
@@ -748,7 +748,7 @@ class ApiService {
         if (response.status === 401) {
           console.log('Unauthorized access, checking for lock reason');
           
-          // Try to get the error message from the response
+       
           let errorMessage = 'Authentication failed';
           if (errorData && errorData.message) {
             errorMessage = errorData.message;
@@ -756,12 +756,12 @@ class ApiService {
             errorMessage = errorData.title;
           }
           
-          // Check if it's an account lock
+      
           if (errorMessage.toLowerCase().includes('lock') || 
               errorMessage.toLowerCase().includes('suspended') ||
               errorMessage.toLowerCase().includes('disabled')) {
             console.log('Account is locked/suspended:', errorMessage);
-            // Don't redirect to login, let the error be handled by the calling component
+           
             throw new Error(errorMessage);
           }
           
@@ -770,7 +770,7 @@ class ApiService {
           localStorage.removeItem('authToken');
           localStorage.removeItem('authUser');
           window.location.href = '/login';
-          return {} as T; // Return empty object to prevent further processing
+          return {} as T; 
         }
         
         // Handle validation errors specifically
@@ -784,10 +784,10 @@ class ApiService {
         throw new Error(errorData.message || errorData.title || `HTTP error! status: ${response.status}`);
       }
 
-      // Handle empty responses (common for DELETE operations)
+     
       const contentType = response.headers.get('content-type');
       if (response.status === 204 || !contentType || !contentType.includes('application/json')) {
-        // Return a default success response for empty responses
+        
         return { success: true, message: 'Operation completed successfully' } as T;
       }
 
@@ -795,7 +795,7 @@ class ApiService {
       console.log('API Response for', url, ':', responseData);
       return responseData;
     } catch (error) {
-      // Always throw a generic error for network issues
+    
       throw new Error('Unable to connect to the server. Please try again later.');
     }
   }
@@ -808,7 +808,7 @@ class ApiService {
     return {};
   }
 
-  // Authentication endpoints
+
   async login(data: LoginRequest): Promise<LoginResponse> {
     return this.request<LoginResponse>('/api/Auth/login', {
       method: 'POST',
@@ -918,7 +918,7 @@ class ApiService {
     try {
       return await this.request<UserResponse>('/api/User/profile');
     } catch (error) {
-      // Don't redirect on 401 for profile endpoint, let the UI handle it
+      
       if (error instanceof Error && error.message.includes('401')) {
         throw new Error('Authentication required');
       }
@@ -956,7 +956,7 @@ class ApiService {
   async searchUsers(searchTerm: string, pageNumber: number = 1, pageSize: number = 10): Promise<UserListResponse> {
     const response = await this.request<UserSearchResponse>(`/api/User/search?searchTerm=${encodeURIComponent(searchTerm)}`);
     
-    // Transform the search response to match UserListResponse structure
+  
     return {
       success: response.success,
       message: 'Search completed successfully',
@@ -965,7 +965,7 @@ class ApiService {
         totalCount: response.data?.length || 0,
         page: pageNumber,
         pageSize: pageSize,
-        totalPages: 1, // Search results are not paginated
+        totalPages: 1, 
         hasPreviousPage: false,
         hasNextPage: false,
       },
@@ -1046,7 +1046,7 @@ class ApiService {
   async getRoles(pageNumber: number = 1, pageSize: number = 10): Promise<RoleListResponse> {
     const response = await this.request<{items: Role[]}>(`/api/Role?pageNumber=${pageNumber}&pageSize=${pageSize}`);
     
-    // Transform the response to match RoleListResponse structure
+   
     return {
       success: true,
       message: 'Roles retrieved successfully',
@@ -1055,7 +1055,7 @@ class ApiService {
         totalCount: response?.items?.length || 0,
         pageNumber: pageNumber,
         pageSize: pageSize,
-        totalPages: 1, // Assuming pagination is handled differently
+        totalPages: 1, 
       },
     };
   }
@@ -1071,7 +1071,7 @@ class ApiService {
       hasNextPage: boolean;
     }>('/api/Role');
     
-    // Transform the response to match RoleListResponse structure
+   
     return {
       success: true,
       message: 'Active roles retrieved successfully',
@@ -1157,7 +1157,7 @@ class ApiService {
       hasNextPage: boolean;
     }>('/api/Permission?pageNumber=1&pageSize=1000');
     
-    // Transform the response to match PermissionListResponse structure
+  
     return {
       success: true,
       message: 'Active permissions retrieved successfully',
@@ -1303,7 +1303,7 @@ class ApiService {
   }
 
   async createCustomer(data: CreateCustomerWithDocumentsRequest): Promise<CustomerResponse> {
-    // Extract documents from the request
+   
     const documents = data.step4?.documents || [];
     const customerData = { ...data };
     delete customerData.step4;
@@ -1314,11 +1314,11 @@ class ApiService {
       body: JSON.stringify(customerData),
     });
     
-    // If customer was created successfully and there are documents with files, add them
+  
     if (customerResponse.success && customerResponse.data && documents.length > 0) {
       const customerId = customerResponse.data.id;
       
-      // Add documents one by one, but only if they have actual files
+      
       for (const doc of documents) {
         if (doc.filePath && doc.documentType) {
           try {
@@ -1330,11 +1330,11 @@ class ApiService {
               issueDate: doc.issueDate,
               issuingAuthority: doc.issuingAuthority,
               tags: doc.tags,
-              file: undefined, // Documents are handled separately
+              file: undefined, 
             });
           } catch (error) {
             console.warn(`Failed to upload document ${doc.fileName}:`, error);
-            // Continue with other documents even if one fails
+           
           }
         }
       }

@@ -65,7 +65,7 @@ import {
   useTotalSubscriptionRevenue
 } from '@/hooks/use-services';
 
-// Remove the hardcoded services array and utility functions since they're now imported from the hook
+
 
 export const Services: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,10 +76,9 @@ export const Services: React.FC = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<number | null>(null);
 
-  // Fetch services and statistics from API
+
   const { data: servicesData, isLoading, error } = useServices(1, 100);
-  // const { data: revenueData } = useTotalRevenue();
-  // const { data: clientsData } = useTotalClients();
+ 
   const { data: activeSubsData } = useActiveSubscriptionCount();
   const { data: totalSubsRevenueData } = useTotalSubscriptionRevenue();
   
@@ -88,8 +87,7 @@ export const Services: React.FC = () => {
   const deleteServiceMutation = useDeleteService();
   
   const services = servicesData?.data?.items || [];
-  // const totalRevenue = revenueData?.data || 0;
-  // const totalClients = clientsData?.data || 0;
+ 
   const totalRevenue = totalSubsRevenueData?.data || 0;
   const totalClients = activeSubsData?.data || 0;
 

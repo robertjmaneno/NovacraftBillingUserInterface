@@ -75,7 +75,7 @@ export const PasswordChangeDialog: React.FC<PasswordChangeDialogProps> = ({
         confirmPassword: '',
       });
       
-      // Logout and redirect to login after a short delay
+      
       setTimeout(() => {
         logout();
       }, 1500);

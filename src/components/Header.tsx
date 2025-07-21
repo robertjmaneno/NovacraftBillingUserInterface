@@ -52,9 +52,7 @@ export const Header: React.FC = () => {
         </h1>
 
         <div className="flex items-center space-x-4">
-          {/* Connection Status - Only show in development */}
-          {import.meta.env.DEV && <ConnectionStatus />}
-          
+      
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

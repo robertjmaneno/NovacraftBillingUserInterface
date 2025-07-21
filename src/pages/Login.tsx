@@ -21,7 +21,7 @@ export const Login: React.FC = () => {
   const location = useLocation();
   const { toast } = useToast();
 
-  // Get the intended destination from location state
+  
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,7 +90,7 @@ export const Login: React.FC = () => {
             description: "Please complete two-factor authentication.",
             variant: "destructive",
           });
-          // You might want to redirect to MFA page
+          
           return;
         } else {
           errorMessage = error.message;

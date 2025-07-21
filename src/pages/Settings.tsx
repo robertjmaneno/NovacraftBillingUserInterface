@@ -85,7 +85,7 @@ export const Settings: React.FC = () => {
     }
   }, [user]);
 
-  // Update MFA status when API data changes
+
   useEffect(() => {
     if (mfaStatus?.data?.enabled !== undefined) {
       setSecurity(prev => ({

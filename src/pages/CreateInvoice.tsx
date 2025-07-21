@@ -79,7 +79,7 @@ export const CreateInvoice: React.FC = () => {
   const total = taxableAmount + taxAmount;
 
   const handleSaveOrSend = async (action: 'save' | 'send') => {
-    // Prepare request body for backend
+    
     const reqBody = {
       customerId: Number(invoiceData.customerId),
       items: items.map(({ description, quantity, rate }) => ({ description, quantity: Number(quantity), rate: Number(quantity) * Number(rate) })),

@@ -39,7 +39,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
 
   React.useEffect(() => {
     if (service) {
-      // Simulate loading time for service details
+      
       const timer = setTimeout(() => {
         setIsLoading(false);
       }, 1000);

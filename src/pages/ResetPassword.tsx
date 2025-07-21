@@ -23,7 +23,7 @@ export const ResetPassword: React.FC = () => {
   const email = searchParams.get('email');
   const isFirstLogin = searchParams.get('firstLogin') === '1';
   
-  // Decode the token properly
+
   const token = rawToken ? decodeURIComponent(rawToken) : null;
   
   // Debug logging
@@ -65,7 +65,7 @@ export const ResetPassword: React.FC = () => {
       return;
     }
 
-    // Password validation
+  
     if (formData.password.length < 6) {
       toast({
         title: "Password too short",
@@ -75,7 +75,7 @@ export const ResetPassword: React.FC = () => {
       return;
     }
 
-    // Check for uppercase, lowercase, number, and special character
+   
     const hasUppercase = /[A-Z]/.test(formData.password);
     const hasLowercase = /[a-z]/.test(formData.password);
     const hasNumber = /\d/.test(formData.password);
@@ -158,7 +158,7 @@ export const ResetPassword: React.FC = () => {
     }
     setFirstLoginLoading(true);
     try {
-      // Call backend force-password-change-unauthenticated endpoint
+      
       const { apiService } = await import('../services/api');
       const resp = await apiService.forcePasswordChangeUnauthenticated({
         email: email || '',

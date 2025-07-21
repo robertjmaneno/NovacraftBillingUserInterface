@@ -2,41 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building, Mail, Phone, MapPin, FileText, Calendar } from 'lucide-react';
-
-export interface ClientFormData {
-  // Core Information
-  name: string;
-  email: string;
-  phone: string;
-  website: string;
-  taxId: string;
-  registrationNumber: string;
-  
-  // Physical Address
-  physicalAddress: string;
-  physicalCity: string;
-  physicalState: string;
-  physicalZipCode: string;
-  physicalCountry: string;
-  
-  // Billing Address
-  billingAddress: string;
-  billingCity: string;
-  billingState: string;
-  billingZipCode: string;
-  billingCountry: string;
-  
-  // Documents
-  businessLicense: File | null;
-  taxCertificate: File | null;
-  
-  // Additional fields
-  industry: string;
-  companySize: string;
-  preferredCurrency: string;
-  paymentTerms: string;
-  notes: string;
-}
+import { ClientFormData } from './types';
 
 interface PreviewStepProps {
   formData: ClientFormData;
@@ -107,24 +73,24 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({ formData }) => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Address</label>
-              <p className="text-gray-900">{formData.physicalAddress || 'Not provided'}</p>
+              <label className="text-sm font-medium text-gray-700">Street</label>
+              <p className="text-gray-900">{formData.physicalAddress?.street || 'Not provided'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">City</label>
-              <p className="text-gray-900">{formData.physicalCity || 'Not provided'}</p>
+              <p className="text-gray-900">{formData.physicalAddress?.city || 'Not provided'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">State/Province</label>
-              <p className="text-gray-900">{formData.physicalState || 'Not provided'}</p>
+              <label className="text-sm font-medium text-gray-700">District</label>
+              <p className="text-gray-900">{formData.physicalAddress?.district || 'Not provided'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">ZIP/Postal Code</label>
-              <p className="text-gray-900">{formData.physicalZipCode || 'Not provided'}</p>
+              <label className="text-sm font-medium text-gray-700">Post Office Box</label>
+              <p className="text-gray-900">{formData.physicalAddress?.postOfficeBox || 'Not provided'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Country</label>
-              <p className="text-gray-900">{formData.physicalCountry || 'Not provided'}</p>
+              <p className="text-gray-900">{formData.physicalAddress?.country || 'Not provided'}</p>
             </div>
           </div>
         </CardContent>
@@ -141,24 +107,24 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({ formData }) => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Address</label>
-              <p className="text-gray-900">{formData.billingAddress || 'Not provided'}</p>
+              <label className="text-sm font-medium text-gray-700">Street</label>
+              <p className="text-gray-900">{formData.billingAddress?.street || 'Not provided'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">City</label>
-              <p className="text-gray-900">{formData.billingCity || 'Not provided'}</p>
+              <p className="text-gray-900">{formData.billingAddress?.city || 'Not provided'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">State/Province</label>
-              <p className="text-gray-900">{formData.billingState || 'Not provided'}</p>
+              <label className="text-sm font-medium text-gray-700">District</label>
+              <p className="text-gray-900">{formData.billingAddress?.district || 'Not provided'}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">ZIP/Postal Code</label>
-              <p className="text-gray-900">{formData.billingZipCode || 'Not provided'}</p>
+              <label className="text-sm font-medium text-gray-700">Post Office Box</label>
+              <p className="text-gray-900">{formData.billingAddress?.postOfficeBox || 'Not provided'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Country</label>
-              <p className="text-gray-900">{formData.billingCountry || 'Not provided'}</p>
+              <p className="text-gray-900">{formData.billingAddress?.country || 'Not provided'}</p>
             </div>
           </div>
         </CardContent>

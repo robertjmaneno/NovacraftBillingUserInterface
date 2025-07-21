@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Upload, FileText, Trash2 } from 'lucide-react';
-import { ClientFormData } from '@/pages/CreateClient';
+import { ClientFormData } from './types';
 
 interface DocumentsStepProps {
   formData: ClientFormData;

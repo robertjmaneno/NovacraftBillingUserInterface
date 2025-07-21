@@ -70,7 +70,7 @@ export const CreateSubscription: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Automatically update amount when serviceIds change
+  
   useEffect(() => {
     const selectedServices = services.filter(service =>
       subscriptionData.serviceIds.includes(service.id.toString())
@@ -82,7 +82,7 @@ export const CreateSubscription: React.FC = () => {
     }));
   }, [subscriptionData.serviceIds, services]);
 
-  // Map billingCycle number to backend enum string
+  
   const getBillingCycleString = (cycle: number) => {
     switch (cycle) {
       case 1: return 'Monthly';
@@ -101,17 +101,17 @@ export const CreateSubscription: React.FC = () => {
     const selectedServices = services.filter(service => subscriptionData.serviceIds.includes(service.id.toString()));
     const nowIso = new Date().toISOString();
     try {
-      // Always use bulk endpoint, even for one service
+      
       if (selectedServices.length === 0) throw new Error('Please select at least one service');
       const servicesPayload = selectedServices.map((service) => ({
         serviceId: service.id,
         amount: service.price,
-        billingCycle: service.billingCycle, // Send as number, not string
+        billingCycle: service.billingCycle, 
         startDate: nowIso,
         notes: subscriptionData.notes || "string",
         autoRenew: subscriptionData.autoRenew,
         discountPercentage: subscriptionData.discountRate ? Number(subscriptionData.discountRate) : 0,
-        discountAmount: 0 // Calculate if needed
+        discountAmount: 0 
       }));
       const bulkPayload = {
         customerId,

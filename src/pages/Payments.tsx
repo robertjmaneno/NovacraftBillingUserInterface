@@ -41,7 +41,7 @@ export const Payments: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Add outstanding amount query
+  
   const { data: outstandingAmountData } = useQuery({
     queryKey: ['report-outstanding-amount'],
     queryFn: () => apiService.getReportOutstandingAmount(),

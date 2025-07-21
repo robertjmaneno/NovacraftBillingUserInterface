@@ -10,10 +10,10 @@ export const ConnectionStatus: React.FC = () => {
   const checkConnection = async () => {
     setIsChecking(true);
     try {
-      // Check if we have a valid token instead of making API calls
+      
       const token = localStorage.getItem('authToken');
       if (token) {
-        // Basic token validation - check if it's not expired
+        
         const payload = JSON.parse(atob(token.split('.')[1]));
         const isExpired = payload.exp * 1000 < Date.now();
         setIsConnected(!isExpired);
@@ -32,7 +32,7 @@ export const ConnectionStatus: React.FC = () => {
   }, []);
 
   if (isConnected === null) {
-    return null; // Don't show anything while initializing
+    return null; 
   }
 
   return (

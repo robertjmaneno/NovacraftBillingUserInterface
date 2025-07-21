@@ -96,7 +96,7 @@ export const MFA: React.FC = () => {
         console.log('MFA verification successful - storing auth data');
         setIsVerified(true);
         
-        // Store the actual authentication data
+       
         localStorage.setItem('authToken', verifyResponse.data.accessToken);
         localStorage.setItem('authUser', JSON.stringify(verifyResponse.data.user));
         
@@ -125,7 +125,7 @@ export const MFA: React.FC = () => {
           });
         }
         
-        // Clean up temporary data
+        
         localStorage.removeItem('tempUserData');
         
         toast({

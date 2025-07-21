@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ClientFormData } from '@/pages/CreateClient';
+import { ClientFormData } from './types';
 
 interface PhysicalAddressStepProps {
   formData: ClientFormData;
@@ -29,7 +29,7 @@ export const PhysicalAddressStep: React.FC<PhysicalAddressStepProps> = ({
       [field]: value
     };
 
-    // If sameAsBilling is checked, copy billing address
+    
     if (field === 'sameAsBilling' && value === true) {
       newPhysicalAddress.street = formData.billingAddress.street;
       newPhysicalAddress.city = formData.billingAddress.city;

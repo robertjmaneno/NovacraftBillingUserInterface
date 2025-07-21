@@ -87,7 +87,7 @@ const EditCustomer: React.FC = () => {
         users={users}
         usersLoading={usersLoading}
         onSubmit={async (values) => {
-          // Only send fields that are part of UpdateCustomerRequest
+          
           const {
             firstName,
             lastName,

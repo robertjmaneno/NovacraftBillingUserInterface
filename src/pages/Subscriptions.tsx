@@ -110,7 +110,6 @@ export const Subscriptions: React.FC = () => {
   const [upcomingStart, setUpcomingStart] = useState<string>(() => format(today, 'yyyy-MM-dd'));
   const [upcomingEnd, setUpcomingEnd] = useState<string>(() => format(lastDayOfMonth(today), 'yyyy-MM-dd'));
 
-  // Fetch subscriptions from backend with pagination
   const { data, isLoading, isError } = useSubscriptions({
     search: searchTerm,
     status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -122,7 +121,7 @@ export const Subscriptions: React.FC = () => {
   const totalPages = data?.data?.totalPages || 1;
   const totalCount = data?.data?.totalCount || 0;
 
-  // Fetch actual total subscription revenue
+
   const { data: revenueData } = useQuery({
     queryKey: ['subscription-revenue'],
     queryFn: () => apiService.getTotalSubscriptionRevenue(),
@@ -130,7 +129,7 @@ export const Subscriptions: React.FC = () => {
   });
   const totalRevenue = revenueData?.data || 0;
 
-  // Fetch active subscriptions count
+
   const { data: activeSubsData } = useQuery({
     queryKey: ['active-subscriptions'],
     queryFn: () => apiService.getActiveSubscriptions(),
@@ -138,7 +137,7 @@ export const Subscriptions: React.FC = () => {
   });
   const activeSubscriptions = Array.isArray(activeSubsData?.data) ? activeSubsData.data.length : 0;
 
-  // Fetch upcoming billing subscriptions
+  
   const { data: upcomingData, isLoading: isUpcomingLoading, isError: isUpcomingError, refetch: refetchUpcoming } = useQuery({
     queryKey: ['upcoming-billing', upcomingStart, upcomingEnd],
     queryFn: () => apiService.getUpcomingBillingSubscriptions({ from: upcomingStart, to: upcomingEnd }),
@@ -263,7 +262,7 @@ export const Subscriptions: React.FC = () => {
           <TabsTrigger value="upcoming">Upcoming Billing</TabsTrigger>
         </TabsList>
         <TabsContent value="all">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Subscriptions</h1>
               <p className="text-gray-600 mt-1">Manage recurring billing and subscriptions</p>
@@ -277,7 +276,7 @@ export const Subscriptions: React.FC = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -324,7 +323,7 @@ export const Subscriptions: React.FC = () => {
           </div>
 
           {/* Filters */}
-          <Card>
+          <Card className="mb-6">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">

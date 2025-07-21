@@ -66,7 +66,7 @@ export const RoleManagement: React.FC = () => {
   const createRoleMutation = useCreateRole();
   const updateRoleMutation = useUpdateRole();
 
-  // Handle the API response structure - the API returns {success: true, data: {roles: [...]}}
+
   const roles = rolesData?.data?.roles || [];
 
   const filteredRoles = roles.filter(role =>
@@ -96,7 +96,7 @@ export const RoleManagement: React.FC = () => {
       setDeleteRoleId(null);
     } catch (error) {
       console.error('Failed to delete role:', error);
-      // The error will be handled by the mutation's onError callback
+      
     }
   };
 
@@ -349,7 +349,7 @@ const RoleForm: React.FC<{
   const getExistingPermissionIds = () => {
     if (!role) return [];
     
-    // Return the actual permissions from the role data
+   
     return role.permissions?.map(p => p.id) || [];
   };
 
@@ -363,13 +363,13 @@ const RoleForm: React.FC<{
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate role name (max 100 characters as per API requirements)
+    
     if (formData.name.length > 100) {
       toast.error('Role name must be 100 characters or less');
       return;
     }
     
-    // Validate description (max 500 characters as per API requirements)
+   
     if (formData.description && formData.description.length > 500) {
       toast.error('Role description must be 500 characters or less');
       return;
@@ -387,10 +387,10 @@ const RoleForm: React.FC<{
         
         await updateRoleMutation.mutateAsync({ id: role.id, data: updateData });
         
-        // TODO: Update role permissions separately when the API endpoint is available
+
         console.log('Update role permissions:', { roleId: role.id, permissionIds: formData.permissionIds });
       } else {
-        // Create new role with permissions included
+      
         const createData = {
           name: formData.name,
           description: formData.description,
@@ -418,7 +418,7 @@ const RoleForm: React.FC<{
           throw error;
         }
         
-        // If role was created successfully, show success message
+       
         if (newRole?.data) {
           const selectedPermissions = permissions.filter(p => formData.permissionIds.includes(p.id));
           console.log('Role created successfully:', newRole.data);
@@ -430,7 +430,7 @@ const RoleForm: React.FC<{
             toast.success('Role created successfully!');
           }
           
-          // Show the newly created role with its permissions
+       
           onRoleCreated?.({
             role: newRole.data,
             permissions: selectedPermissions
@@ -453,7 +453,7 @@ const RoleForm: React.FC<{
     }));
   };
 
-  // Group permissions by module for better display
+ 
   const permissionsByModule = permissions.reduce((acc, permission) => {
     if (!acc[permission.module]) {
       acc[permission.module] = [];
