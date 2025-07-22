@@ -31,16 +31,16 @@ export const ResetPassword: React.FC = () => {
   console.log('Decoded token:', token);
   console.log('Token length:', token?.length);
 
-  const { resetPassword } = useAuth();
+  const { resetPassword, refreshAuth } = useAuth();
   const [firstLoginLoading, setFirstLoginLoading] = useState(false);
   const [firstLoginReset, setFirstLoginReset] = useState(false);
   const [firstLoginForm, setFirstLoginForm] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [firstLoginError, setFirstLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isFirstLogin && !token) {
@@ -124,9 +124,14 @@ export const ResetPassword: React.FC = () => {
     }
   };
 
+  // For first login, get the temp password from localStorage (set during login)
+  const tempUserData = localStorage.getItem('tempUserData');
+  const tempPassword = tempUserData ? (() => { try { return JSON.parse(tempUserData).password; } catch { return ''; } })() : '';
+
   // First login password reset handler
   const handleFirstLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFirstLoginError(null);
     if (firstLoginForm.newPassword !== firstLoginForm.confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -158,23 +163,48 @@ export const ResetPassword: React.FC = () => {
     }
     setFirstLoginLoading(true);
     try {
-      
       const { apiService } = await import('../services/api');
-      const resp = await apiService.forcePasswordChangeUnauthenticated({
+      const payload = {
         email: email || '',
-        currentPassword: firstLoginForm.currentPassword,
+        currentPassword: tempPassword,
         newPassword: firstLoginForm.newPassword
-      });
-      if (resp.success) {
+      };
+      const resp = await apiService.forcePasswordChangeUnauthenticated(payload);
+      if (resp.success && resp.data) {
+        localStorage.setItem('authToken', resp.data.accessToken);
+        localStorage.setItem('refreshToken', resp.data.refreshToken);
+        localStorage.setItem('authUser', JSON.stringify(resp.data.user));
+        if (refreshAuth) {
+          await refreshAuth();
+        }
+        setFirstLoginReset(true);
+        toast({
+          title: "Password changed successfully",
+          description: "You are now logged in.",
+        });
+        await new Promise(res => setTimeout(res, 200));
+        navigate('/');
+        return;
+      } else if (resp.success) {
         setFirstLoginReset(true);
         toast({
           title: "Password changed successfully",
           description: "You can now log in with your new password.",
         });
+        // Do NOT navigate away
+        return;
       } else {
-        throw new Error(resp.message);
+        setFirstLoginError(resp.message || "Failed to reset password. Please try again.");
+        toast({
+          title: "Reset failed",
+          description: resp.message || "Failed to reset password. Please try again.",
+          variant: "destructive",
+        });
+        // Do NOT navigate away
+        return;
       }
     } catch (error: any) {
+      setFirstLoginError(error.message || "Failed to reset password. Please try again.");
       toast({
         title: "Reset failed",
         description: error.message || "Failed to reset password. Please try again.",
@@ -219,17 +249,6 @@ export const ResetPassword: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input
-                    id="currentPassword"
-                    type="password"
-                    placeholder="Enter your current (temporary) password"
-                    value={firstLoginForm.currentPassword}
-                    onChange={e => setFirstLoginForm(f => ({ ...f, currentPassword: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="newPassword">New Password</Label>
                   <Input
                     id="newPassword"
@@ -264,6 +283,9 @@ export const ResetPassword: React.FC = () => {
                     'Reset Password'
                   )}
                 </Button>
+                {firstLoginError && (
+                  <div className="text-red-600 text-sm mt-2 text-center">{firstLoginError}</div>
+                )}
               </form>
             ) : (
               <div className="text-center space-y-4">

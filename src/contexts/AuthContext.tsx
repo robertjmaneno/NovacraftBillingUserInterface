@@ -6,12 +6,13 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean | 'EMAIL_CONFIRMATION_REQUIRED' | 'PASSWORD_CHANGE_REQUIRED'>;
   logout: () => void;
   forgotPassword: (email: string) => Promise<boolean>;
   resetPassword: (token: string, newPassword: string, confirmNewPassword: string, email?: string) => Promise<boolean>;
   verifyMfa: (userId: string, mfaCode: string) => Promise<boolean>;
   sendMfaCode: (userId: string) => Promise<boolean>;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,10 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setToken(null);
             setUser(null);
             setIsLoading(false);
-            // Redirect to login if we're not already there
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-            }
+            // Do NOT redirect to login
             return;
           }
           
@@ -98,7 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean | 'EMAIL_CONFIRMATION_REQUIRED' | 'PASSWORD_CHANGE_REQUIRED'> => {
     console.log('AuthContext login called with email:', email);
     try {
       const { apiService } = await import('../services/api');
@@ -118,13 +116,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success) {
         // Check if this is an MFA required response
-        if (response.otp) {
+        if (
+          ('otp' in response) ||
+          (response.data &&
+            response.data.accessToken === "MFA_REQUIRED" &&
+            response.data.tokenType === "MFA_REQUIRED") ||
+          (response.message && response.message.toLowerCase().includes("mfa verification required"))
+        ) {
           // Store temporary user data for MFA verification
           localStorage.setItem('tempUserData', JSON.stringify({ 
             email: email,
             password: password, // Store password temporarily for MFA completion
             requiresMfa: true,
-            otp: response.otp // Store the OTP for verification
+            otp: response.otp // May be null or undefined
           }));
           return false; // Indicate MFA is required
         }
@@ -158,10 +162,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         return true;
       } else {
+        // Check for password change required
+        if (response.message && response.message.toLowerCase().includes('password change required')) {
+          return 'PASSWORD_CHANGE_REQUIRED';
+        }
+        // Check for email confirmation required
+        if (response.message && response.message.toLowerCase().includes('email not confirmed')) {
+          return 'EMAIL_CONFIRMATION_REQUIRED';
+        }
         throw new Error(response.message);
       }
     } catch (error) {
       console.error('Login failed:', error);
+      if (error && typeof error === 'object') {
+        console.error('Error object:', error);
+        if ('message' in error) {
+          console.error('Error message:', (error as any).message);
+        }
+        if ('response' in error) {
+          console.error('Error response:', (error as any).response);
+        }
+      }
       
       // Check if it's an account lock error
       if (error instanceof Error) {
@@ -173,6 +194,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Re-throw the error with the specific lock message
           throw new Error(error.message);
         }
+      }
+
+      // Check for password change required in error message
+      if (error instanceof Error && error.message.toLowerCase().includes('password change required')) {
+        return 'PASSWORD_CHANGE_REQUIRED';
+      }
+      // Check for email confirmation required in error message
+      if (error instanceof Error && error.message.toLowerCase().includes('email not confirmed')) {
+        return 'EMAIL_CONFIRMATION_REQUIRED';
       }
       
       throw error;
@@ -272,6 +302,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshAuth = async () => {
+    const storedToken = localStorage.getItem('authToken');
+    const storedUser = localStorage.getItem('authUser');
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -283,6 +322,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     verifyMfa,
     sendMfaCode,
+    refreshAuth, // Add this to the context value
   };
 
   return (

@@ -35,10 +35,34 @@ export const Login: React.FC = () => {
       const success = await login(formData.email, formData.password);
       console.log('Login result:', success);
       
+      if (success === 'PASSWORD_CHANGE_REQUIRED') {
+        // Store temp password for reset
+        localStorage.setItem('tempUserData', JSON.stringify({ email: formData.email, password: formData.password }));
+        console.log('Redirecting to reset password page for first login');
+        toast({
+          title: "Password Change Required",
+          description: "Please change your password on first login.",
+          variant: "destructive",
+        });
+        navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
+        return;
+      }
+      if (success === 'EMAIL_CONFIRMATION_REQUIRED') {
+        console.log('Redirecting to confirm email page');
+        toast({
+          title: "Email Confirmation Required",
+          description: "Please check your email and confirm your account before logging in.",
+          variant: "destructive",
+        });
+        navigate(`/confirm-email?email=${encodeURIComponent(formData.email)}`);
+        return;
+      }
       if (success) {
+        console.log('Login successful, navigating to dashboard');
         // Get the user object from localStorage (set by AuthContext)
         const user = JSON.parse(localStorage.getItem('authUser') || '{}');
         if (user.mustChangePassword) {
+          console.log('User must change password, redirecting');
           navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
           return;
         }
@@ -48,7 +72,7 @@ export const Login: React.FC = () => {
         });
         navigate(from, { replace: true });
       } else {
-        // MFA is required
+        console.log('MFA is required, redirecting to MFA page');
         toast({
           title: "MFA verification required",
           description: "Please check your email for the verification code.",
@@ -57,46 +81,7 @@ export const Login: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error.message) {
-        // Check for account lock/suspension messages
-        const errorLower = error.message.toLowerCase();
-        if (errorLower.includes('lock') || 
-            errorLower.includes('suspended') || 
-            errorLower.includes('disabled') ||
-            errorLower.includes('account')) {
-          toast({
-            title: "Account Locked",
-            description: error.message,
-            variant: "destructive",
-          });
-          return;
-        } else if (error.message.includes('Password change required')) {
-          // Handle password change requirement
-          toast({
-            title: "Password change required",
-            description: "Please change your password on first login.",
-            variant: "destructive",
-          });
-          // Redirect to reset password page for first login
-          navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
-          return;
-        } else if (error.message.includes('MFA verification required')) {
-          // Handle MFA requirement
-          toast({
-            title: "MFA verification required",
-            description: "Please complete two-factor authentication.",
-            variant: "destructive",
-          });
-          
-          return;
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
+      let errorMessage = error.message || 'Login failed. Please try again.';
       toast({
         title: "Login failed",
         description: errorMessage,

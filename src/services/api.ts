@@ -1,6 +1,7 @@
 import { config } from '../config/environment';
 
-const API_BASE_URL = config.apiUrl ?? 'https://localhost:7197';
+// Force all API calls to use the full backend URL, never a relative path
+const API_BASE_URL = 'https://localhost:7197';
 
 if (!API_BASE_URL) {
   console.warn('API_BASE_URL is undefined! Check your environment configuration.');
@@ -691,7 +692,8 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    skipAuth: boolean = false // Add a flag to skip auth
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
@@ -703,26 +705,26 @@ class ApiService {
       ...options,
     };
 
-   
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      // Check if token is expired
-      const { isTokenExpired } = await import('../lib/jwt-utils');
-      if (isTokenExpired(token)) {
-        console.log('Token is expired, clearing auth data');
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authUser');
-        
-        window.location.href = '/login';
-        return {} as T; 
+    // Only add Authorization header if not skipping auth
+    if (!skipAuth) {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        // Check if token is expired
+        const { isTokenExpired } = await import('../lib/jwt-utils');
+        if (isTokenExpired(token)) {
+          console.log('Token is expired, clearing auth data');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+          // Do NOT redirect to login
+          return {} as T; 
+        }
+        requestConfig.headers = {
+          ...requestConfig.headers,
+          'Authorization': `Bearer ${token}`,
+        };
+      } else {
+        console.log('No auth token found in localStorage');
       }
-      
-      requestConfig.headers = {
-        ...requestConfig.headers,
-        'Authorization': `Bearer ${token}`,
-      };
-    } else {
-      console.log('No auth token found in localStorage');
     }
 
     try {
@@ -769,7 +771,7 @@ class ApiService {
           console.log('Unauthorized access, redirecting to login');
           localStorage.removeItem('authToken');
           localStorage.removeItem('authUser');
-          window.location.href = '/login';
+          // Do NOT redirect to login
           return {} as T; 
         }
         
@@ -794,8 +796,12 @@ class ApiService {
       const responseData = await response.json();
       console.log('API Response for', url, ':', responseData);
       return responseData;
-    } catch (error) {
-    
+    } catch (error: any) {
+      // If the error is from the backend and has a message, throw it
+      if (error && error.message && error.message !== 'Failed to fetch') {
+        console.error('API error:', error.message);
+        throw error;
+      }
       throw new Error('Unable to connect to the server. Please try again later.');
     }
   }
@@ -902,15 +908,17 @@ class ApiService {
     });
   }
 
+  
+
   async getMfaStatus(userId: string): Promise<MfaStatusResponse> {
     return this.request<MfaStatusResponse>(`/api/Auth/mfa-status/${userId}`);
   }
 
-  async forcePasswordChangeUnauthenticated(data: { email: string; currentPassword: string; newPassword: string }): Promise<{ success: boolean; message: string }> {
-    return this.request<{ success: boolean; message: string }>(`/api/Auth/force-password-change-unauthenticated`, {
+  async forcePasswordChangeUnauthenticated(data: { email: string; currentPassword: string; newPassword: string }): Promise<{ success: boolean; message: string; data?: { accessToken: string; refreshToken: string; expiresAt: string; tokenType: string; user: UserData } }> {
+    return this.request<{ success: boolean; message: string; data?: { accessToken: string; refreshToken: string; expiresAt: string; tokenType: string; user: UserData } }>(`/api/Auth/force-password-change-unauthenticated`, {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // skipAuth = true
   }
 
   // User Management endpoints

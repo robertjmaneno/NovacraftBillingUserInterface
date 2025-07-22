@@ -14,7 +14,7 @@ export const MFA: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
 
-  const { verifyMfa, sendMfaCode } = useAuth();
+  const { verifyMfa, sendMfaCode, refreshAuth } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -127,6 +127,11 @@ export const MFA: React.FC = () => {
         
         
         localStorage.removeItem('tempUserData');
+        
+        // Refresh AuthContext state so user stays logged in
+        if (refreshAuth) {
+          await refreshAuth();
+        }
         
         toast({
           title: "MFA verification successful",
