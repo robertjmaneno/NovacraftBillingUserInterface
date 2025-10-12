@@ -139,111 +139,123 @@ export const usePermissions = () => {
   };
 };
 
-// Static permission constants for backward compatibility
-// These will be replaced by dynamic constants from the API
+// Static permission constants - Updated to match backend seeder exactly
 export const PERMISSIONS = {
+  // Management Permissions (High-level)
+  USERS_MANAGE: 'Manage Users',
+  ROLES_MANAGE: 'Manage Roles', 
+  PERMISSIONS_MANAGE: 'Manage Permissions',
+
   // User Management
-  USERS_CREATE: 'Users.Create',
-  USERS_READ: 'Users.Read',
-  USERS_UPDATE: 'Users.Update',
-  USERS_DELETE: 'Users.Delete',
-  USERS_EXPORT: 'Users.Export',
-  USERS_IMPORT: 'Users.Import',
-  USERS_SUSPEND: 'Users.Suspend',
-  USERS_ACTIVATE: 'Users.Activate',
-  USERS_RESETPASSWORD: 'Users.ResetPassword',
-  USERS_MANAGEMFA: 'Users.ManageMFA',
+  USERS_CREATE: 'Create User',
+  USERS_READ: 'View Users', 
+  USERS_UPDATE: 'Update User',
+  USERS_DELETE: 'Delete User',
+  USERS_EXPORT: 'Export Users',
+  USERS_IMPORT: 'Import Users',
+  USERS_SUSPEND: 'Suspend User',
+  USERS_ACTIVATE: 'Activate User',
+  USERS_RESETPASSWORD: 'Reset User Password',
+  USERS_MANAGEMFA: 'Manage User MFA',
 
   // Role Management
-  ROLES_CREATE: 'Roles.Create',
-  ROLES_READ: 'Roles.Read',
-  ROLES_UPDATE: 'Roles.Update',
-  ROLES_DELETE: 'Roles.Delete',
-  ROLES_ASSIGNPERMISSIONS: 'Roles.AssignPermissions',
-  ROLES_ASSIGNUSERS: 'Roles.AssignUsers',
+  ROLES_CREATE: 'Create Role',
+  ROLES_READ: 'View Roles',
+  ROLES_UPDATE: 'Update Role',
+  ROLES_DELETE: 'Delete Role',
+  ROLES_ASSIGNPERMISSIONS: 'Assign Permissions to Role',
+  ROLES_ASSIGNUSERS: 'Assign Users to Role',
 
   // Permission Management
-  PERMISSIONS_CREATE: 'Permissions.Create',
-  PERMISSIONS_READ: 'Permissions.Read',
-  PERMISSIONS_UPDATE: 'Permissions.Update',
-  PERMISSIONS_DELETE: 'Permissions.Delete',
+  PERMISSIONS_CREATE: 'Create Permission',
+  PERMISSIONS_READ: 'View Permissions',
+  PERMISSIONS_UPDATE: 'Update Permission',
+  PERMISSIONS_DELETE: 'Delete Permission',
 
-  // Billing Management
-  BILLING_CREATE: 'Billing.Create',
-  BILLING_READ: 'Billing.Read',
-  BILLING_UPDATE: 'Billing.Update',
-  BILLING_DELETE: 'Billing.Delete',
-  BILLING_APPROVE: 'Billing.Approve',
-  BILLING_REJECT: 'Billing.Reject',
-  BILLING_EXPORT: 'Billing.Export',
-  BILLING_GENERATEINVOICE: 'Billing.GenerateInvoice',
+  // User Role Management
+  USERROLES_MANAGE: 'Manage User Roles',
+  USERROLES_ASSIGN: 'Assign User Role',
+  USERROLES_REMOVE: 'Remove User Role',
+  USERROLES_READ: 'View User Roles',
+
+  // Service Management
+  SERVICES_CREATE: 'Create Service',
+  SERVICES_READ: 'View Services',
+  SERVICES_UPDATE: 'Update Service',
+  SERVICES_DELETE: 'Delete Service',
+
+  // Invoice Template Management
+  INVOICETEMPLATES_CREATE: 'Create Invoice Template',
+  INVOICETEMPLATES_READ: 'View Invoice Templates',
+  INVOICETEMPLATES_UPDATE: 'Update Invoice Template',
+  INVOICETEMPLATES_DELETE: 'Delete Invoice Template',
 
   // Invoice Management
-  INVOICES_CREATE: 'Invoices.Create',
-  INVOICES_READ: 'Invoices.Read',
-  INVOICES_UPDATE: 'Invoices.Update',
-  INVOICES_DELETE: 'Invoices.Delete',
-  INVOICES_SEND: 'Invoices.Send',
-  INVOICES_EXPORT: 'Invoices.Export',
-  INVOICES_PRINT: 'Invoices.Print',
+  INVOICES_CREATE: 'Create Invoice',
+  INVOICES_READ: 'View Invoices',
+  INVOICES_UPDATE: 'Update Invoice',
+  INVOICES_DELETE: 'Delete Invoice',
+  INVOICES_SEND: 'Send Invoice',
+  INVOICES_EXPORT: 'Export Invoices',
+  INVOICES_PRINT: 'Print Invoice',
 
   // Payment Management
-  PAYMENTS_CREATE: 'Payments.Create',
-  PAYMENTS_READ: 'Payments.Read',
-  PAYMENTS_UPDATE: 'Payments.Update',
-  PAYMENTS_DELETE: 'Payments.Delete',
-  PAYMENTS_PROCESS: 'Payments.Process',
-  PAYMENTS_REFUND: 'Payments.Refund',
-  PAYMENTS_EXPORT: 'Payments.Export',
+  PAYMENTS_CREATE: 'Create Payment',
+  PAYMENTS_READ: 'View Payments',
+  PAYMENTS_UPDATE: 'Update Payment',
+  PAYMENTS_DELETE: 'Delete Payment',
+  PAYMENTS_PROCESS: 'Process Payment',
+  PAYMENTS_REFUND: 'Refund Payment',
+  PAYMENTS_EXPORT: 'Export Payments',
 
   // Customer Management
-  CUSTOMERS_CREATE: 'Customers.Create',
-  CUSTOMERS_READ: 'Customers.Read',
-  CUSTOMERS_UPDATE: 'Customers.Update',
-  CUSTOMERS_DELETE: 'Customers.Delete',
-  CUSTOMERS_EXPORT: 'Customers.Export',
-  CUSTOMERS_IMPORT: 'Customers.Import',
+  CUSTOMERS_CREATE: 'Create Customer',
+  CUSTOMERS_READ: 'View Customers',
+  CUSTOMERS_UPDATE: 'Update Customer',
+  CUSTOMERS_DELETE: 'Delete Customer',
+  CUSTOMERS_EXPORT: 'Export Customers',
+  CUSTOMERS_IMPORT: 'Import Customers',
 
   // Product Management
-  PRODUCTS_CREATE: 'Products.Create',
-  PRODUCTS_READ: 'Products.Read',
-  PRODUCTS_UPDATE: 'Products.Update',
-  PRODUCTS_DELETE: 'Products.Delete',
-  PRODUCTS_EXPORT: 'Products.Export',
-  PRODUCTS_IMPORT: 'Products.Import',
+  PRODUCTS_CREATE: 'Create Product',
+  PRODUCTS_READ: 'View Products',
+  PRODUCTS_UPDATE: 'Update Product',
+  PRODUCTS_DELETE: 'Delete Product',
+  PRODUCTS_EXPORT: 'Export Products',
+  PRODUCTS_IMPORT: 'Import Products',
 
   // Subscription Management
-  SUBSCRIPTIONS_CREATE: 'Subscriptions.Create',
-  SUBSCRIPTIONS_READ: 'Subscriptions.Read',
-  SUBSCRIPTIONS_UPDATE: 'Subscriptions.Update',
-  SUBSCRIPTIONS_DELETE: 'Subscriptions.Delete',
-  SUBSCRIPTIONS_ACTIVATE: 'Subscriptions.Activate',
-  SUBSCRIPTIONS_SUSPEND: 'Subscriptions.Suspend',
-  SUBSCRIPTIONS_CANCEL: 'Subscriptions.Cancel',
-  SUBSCRIPTIONS_RENEW: 'Subscriptions.Renew',
-  SUBSCRIPTIONS_EXPORT: 'Subscriptions.Export',
-  SUBSCRIPTIONS_IMPORT: 'Subscriptions.Import',
-  SUBSCRIPTIONS_MANAGEOWN: 'Subscriptions.ManageOwn',
+  SUBSCRIPTIONS_CREATE: 'Create Subscription',
+  SUBSCRIPTIONS_READ: 'View Subscriptions',
+  SUBSCRIPTIONS_UPDATE: 'Update Subscription',
+  SUBSCRIPTIONS_DELETE: 'Delete Subscription',
+  SUBSCRIPTIONS_ACTIVATE: 'Activate Subscription',
+  SUBSCRIPTIONS_SUSPEND: 'Suspend Subscription',
+  SUBSCRIPTIONS_CANCEL: 'Cancel Subscription',
+  SUBSCRIPTIONS_RENEW: 'Renew Subscription',
+  SUBSCRIPTIONS_EXPORT: 'Export Subscriptions',
+  SUBSCRIPTIONS_IMPORT: 'Import Subscriptions',
+  SUBSCRIPTIONS_MANAGEOWN: 'Manage Own Subscriptions',
 
-  // Reports
-  REPORTS_VIEW: 'Reports.View',
-  REPORTS_GENERATE: 'Reports.Generate',
-  REPORTS_EXPORT: 'Reports.Export',
-  REPORTS_SCHEDULE: 'Reports.Schedule',
+  // Reports Management
+  REPORTS_VIEW: 'View Reports',
+  REPORTS_GENERATE: 'Generate Report',
+  REPORTS_EXPORT: 'Export Reports',
+  REPORTS_SCHEDULE: 'Schedule Report',
 
-  // System Settings
-  SETTINGS_READ: 'Settings.Read',
-  SETTINGS_UPDATE: 'Settings.Update',
-  SETTINGS_BACKUP: 'Settings.Backup',
-  SETTINGS_RESTORE: 'Settings.Restore',
+  // Settings Management
+  SETTINGS_READ: 'View Settings',
+  SETTINGS_UPDATE: 'Update Settings',
+  SETTINGS_BACKUP: 'Backup System',
+  SETTINGS_RESTORE: 'Restore System',
 
-  // Audit
-  AUDIT_READ: 'Audit.Read',
-  AUDIT_EXPORT: 'Audit.Export',
+  // Audit Management
+  AUDIT_READ: 'View Audit Logs',
+  AUDIT_EXPORT: 'Export Audit Logs',
 
-  // Dashboard
-  DASHBOARD_VIEW: 'Dashboard.View',
-  DASHBOARD_CUSTOMIZE: 'Dashboard.Customize',
+  // Dashboard Management
+  DASHBOARD_VIEW: 'View Dashboard',
+  DASHBOARD_CUSTOMIZE: 'Customize Dashboard',
 } as const;
 
 export const ROLES = {

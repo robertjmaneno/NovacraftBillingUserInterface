@@ -70,7 +70,11 @@ export const Login: React.FC = () => {
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate(from, { replace: true });
+        
+        // Add a small delay to ensure auth state is updated
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 100);
       } else {
         console.log('MFA is required, redirecting to MFA page');
         toast({

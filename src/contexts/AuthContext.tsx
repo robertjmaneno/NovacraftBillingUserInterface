@@ -160,6 +160,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('authUser', JSON.stringify(userWithAuth));
         setUser(userWithAuth);
         
+        console.log('Auth state updated successfully:', {
+          token: !!accessToken,
+          user: !!userWithAuth,
+          userId: userWithAuth.id
+        });
+        
+        // Wait for the next tick to ensure state updates have been processed
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
         return true;
       } else {
         // Check for password change required

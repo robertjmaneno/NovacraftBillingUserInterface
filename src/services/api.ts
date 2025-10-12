@@ -1,7 +1,7 @@
 import { config } from '../config/environment';
 
 // Force all API calls to use the full backend URL, never a relative path
-const API_BASE_URL = 'https://localhost:7197';
+const API_BASE_URL = config.apiUrl;
 
 if (!API_BASE_URL) {
   console.warn('API_BASE_URL is undefined! Check your environment configuration.');
