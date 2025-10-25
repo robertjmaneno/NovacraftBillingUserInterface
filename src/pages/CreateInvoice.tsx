@@ -68,7 +68,7 @@ export const CreateInvoice: React.FC = () => {
     }
   };
 
-  const updateItem = (id: string, field: 'description' | 'quantity' | 'rate', value: any) => {
+  const updateItem = (id: string, field: 'description' | 'quantity' | 'rate', value: string | number) => {
     setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
@@ -96,8 +96,8 @@ export const CreateInvoice: React.FC = () => {
       await apiService.createInvoice(reqBody);
       toast.success('Invoice sent successfully!');
       navigate('/invoices');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to send invoice');
+    } catch (err: unknown) {
+      toast.error((err as { message?: string })?.message || 'Failed to send invoice');
     } finally {
       setSending(false);
     }
@@ -139,9 +139,9 @@ export const CreateInvoice: React.FC = () => {
                     <SelectValue placeholder={customersLoading ? 'Loading...' : 'Select a customer'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {customers.map((customer: any) => (
-                      <SelectItem key={customer.id} value={String(customer.id)}>
-                        {customer.displayName || customer.fullName || customer.organizationName || customer.firstName + ' ' + customer.lastName}
+                    {customers.map((customer) => (
+                      <SelectItem key={String(customer.id)} value={String(customer.id)}>
+                        {String(customer.displayName || customer.fullName || customer.organizationName || String(customer.firstName) + ' ' + String(customer.lastName))}
                       </SelectItem>
                     ))}
                   </SelectContent>

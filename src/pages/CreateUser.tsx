@@ -18,7 +18,6 @@ import { useCreateUser } from '@/hooks/use-users';
 import { useActiveRoles } from '@/hooks/use-roles';
 import { useValidateEmail, useValidatePhone } from '@/hooks/use-users';
 import { PermissionGuard } from '@/components/PermissionGuard';
-import { PERMISSIONS } from '@/hooks/use-permissions';
 import { toast } from 'sonner';
 import { FormShimmer } from '@/components/ui/shimmer';
 
@@ -177,7 +176,7 @@ export const CreateUser: React.FC = () => {
 
   if (isLoading) {
     return (
-      <PermissionGuard permissions={[PERMISSIONS.USERS_CREATE]}>
+      <PermissionGuard permissions={['Users.Create']}>
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
             <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
@@ -200,7 +199,7 @@ export const CreateUser: React.FC = () => {
   }
 
   return (
-    <PermissionGuard permissions={[PERMISSIONS.USERS_CREATE]}>
+    <PermissionGuard permissions={['Users.Create']}>
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
           <Link to="/users">

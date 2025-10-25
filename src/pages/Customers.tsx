@@ -293,7 +293,7 @@ export const Customers: React.FC = () => {
 // Customer Details Modal
 const CustomerDetailsModal: React.FC<{ customerId: number | null }> = ({ customerId }) => {
   const { data, isLoading } = useCustomer(customerId!, { enabled: !!customerId });
-  const customer = (data as any)?.data;
+  const customer = data?.data;
   if (!customerId) return null;
   return (
     <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -384,14 +384,14 @@ const CustomerDetailsModal: React.FC<{ customerId: number | null }> = ({ custome
               </div>
               {Array.isArray(customer.addresses) && customer.addresses.length > 0 ? (
                 <ul className="space-y-2">
-                  {customer.addresses.map((addr: any, idx: number) => (
+                  {customer.addresses.map((addr, idx: number) => (
                     <li key={idx} className="border rounded p-2">
                       <div><b>Type:</b> {addr.addressType === 1 ? 'Billing' : addr.addressType === 2 ? 'Physical' : addr.addressType === 3 ? 'Shipping' : '-'}</div>
-                      <div><b>Street:</b> {addr.streetAddress || '-'}</div>
-                      <div><b>City:</b> {addr.city || '-'}</div>
-                      <div><b>District:</b> {addr.district || '-'}</div>
-                      <div><b>Country:</b> {addr.country || '-'}</div>
-                      <div><b>Postal Code:</b> {addr.postalCode || '-'}</div>
+                      <div><b>Street:</b> {String(addr.streetAddress || '-')}</div>
+                      <div><b>City:</b> {String(addr.city || '-')}</div>
+                      <div><b>District:</b> {String(addr.district || '-')}</div>
+                      <div><b>Country:</b> {String(addr.country || '-')}</div>
+                      <div><b>Postal Code:</b> {String(addr.postalCode || '-')}</div>
                     </li>
                   ))}
                 </ul>
@@ -410,7 +410,7 @@ const CustomerDetailsModal: React.FC<{ customerId: number | null }> = ({ custome
 // Edit Customer Modal
 const EditCustomerModal: React.FC<{ customerId: number | null; onClose: () => void }> = ({ customerId, onClose }) => {
   const { data, isLoading } = useCustomer(customerId!, { enabled: !!customerId });
-  const customer = (data as any)?.data;
+  const customer = data?.data;
   const { data: usersData, isLoading: usersLoading } = useUsers(1, 100);
   const users = usersData?.data?.items || [];
   const updateCustomerMutation = useUpdateCustomer();
@@ -421,7 +421,7 @@ const EditCustomerModal: React.FC<{ customerId: number | null; onClose: () => vo
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
       <CustomerForm
-        initialValues={customer}
+        initialValues={customer as unknown as Record<string, unknown>}
         mode="edit"
         users={users}
         usersLoading={usersLoading}

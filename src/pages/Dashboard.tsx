@@ -122,17 +122,12 @@ export const Dashboard: React.FC = () => {
     queryFn: () => apiService.getReportOutstandingAmount(),
     staleTime: 5 * 60 * 1000,
     retry: false, // Don't retry 403 errors
-    onError: (error) => {
-      if (error instanceof Error && error.message.includes('403')) {
-        console.log('User does not have permissions for reports data');
-      }
-    }
   });
 
   const isLoading = paymentStatsLoading || subscriptionRevenueLoading || customersLoading || invoicesLoading || outstandingAmountLoading;
   
   // Only treat it as a critical error if it's not a permission issue
-  const isCriticalError = (error: any) => {
+  const isCriticalError = (error: unknown) => {
     return error && !(error instanceof Error && error.message.includes('403'));
   };
   

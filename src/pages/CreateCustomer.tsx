@@ -28,7 +28,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useCreateCustomer } from '@/hooks/use-customers';
 import { useUsers } from '@/hooks/use-users';
-import { CreateCustomerWithDocumentsRequest } from '@/services/api';
+import { CreateCustomerWithDocumentsRequest, UserData } from '@/services/api';
 import { toast } from 'sonner';
 
 interface CustomerFormData {
@@ -286,7 +286,7 @@ export const CreateCustomer: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const updateFormData = (field: keyof CustomerFormData, value: any) => {
+  const updateFormData = (field: keyof CustomerFormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -1042,7 +1042,7 @@ export interface CustomerFormProps {
   initialValues: Partial<CustomerFormData>;
   mode: 'create' | 'edit';
   onSubmit: (values: CustomerFormData) => void;
-  users: any[];
+  users: UserData[];
   usersLoading: boolean;
   onCancel?: () => void;
 }
@@ -1086,7 +1086,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
   const [selectedContactUserId, setSelectedContactUserId] = useState<string>(initialValues.contactPersonId || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const updateFormData = (field: keyof CustomerFormData, value: any) => {
+  const updateFormData = (field: keyof CustomerFormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));

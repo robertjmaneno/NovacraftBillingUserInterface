@@ -54,7 +54,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useUsers, useDeleteUser, useActivateUser, useDeactivateUser, useSuspendUser, useUnlockUser, useLockUser } from '@/hooks/use-users';
 import { useActiveRoles } from '@/hooks/use-roles';
-import { usePermissions, PERMISSIONS } from '@/hooks/use-permissions';
+import { usePermissions } from '@/hooks/use-permissions';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { getUserInitials } from '@/lib/utils';
 import { TableShimmer } from '@/components/ui/shimmer';
@@ -70,37 +70,25 @@ export const UserManagement: React.FC = () => {
 
   const { hasPermission, hasAnyPermission, getUserPermissionNames } = usePermissions();
 
-  // Check if user has permission to view users (multiple permission variants)
+  // Check if user has permission to view users
   const canViewUsers = hasAnyPermission([
-    PERMISSIONS.USERS_READ, 
-    PERMISSIONS.USERS_MANAGE,
-    'View Users',
-    'Manage Users',
-    'Users.Read'
+    'Users.Read', 
+    'Users.Manage'
   ]);
   
   const canViewRoles = hasAnyPermission([
-    PERMISSIONS.ROLES_READ, 
-    PERMISSIONS.ROLES_MANAGE,
-    'View Roles',
-    'Manage Roles',
-    'Roles.Read'
+    'Roles.Read', 
+    'Roles.Manage'
   ]);
   
-  // Check if user can manage users (multiple permission variants)
+  // Check if user can manage users
   const canManageUsers = hasAnyPermission([
-    PERMISSIONS.USERS_UPDATE,
-    PERMISSIONS.USERS_ACTIVATE,
-    PERMISSIONS.USERS_SUSPEND,
-    PERMISSIONS.USERS_RESETPASSWORD,
-    PERMISSIONS.USERS_MANAGEMFA,
-    PERMISSIONS.USERS_MANAGE,
-    'Manage Users',
-    'Update User',
-    'Activate User',
-    'Suspend User',
-    'Reset User Password',
-    'Manage User MFA'
+    'Users.Update',
+    'Users.Activate',
+    'Users.Suspend',
+    'Users.ResetPassword',
+    'Users.ManageMFA',
+    'Users.Manage'
   ]);
   
 
@@ -313,7 +301,7 @@ export const UserManagement: React.FC = () => {
           <p className="text-gray-600 mt-1 text-base font-regular">Manage users and assign roles</p>
         </div>
         <div className="flex space-x-2">
-          <PermissionGuard permissions={[PERMISSIONS.ROLES_READ]}>
+          <PermissionGuard permissions={['Roles.Read']}>
             <Link to="/roles">
               <Button variant="outline">
                 <Shield className="w-4 h-4 mr-2" />
@@ -322,7 +310,7 @@ export const UserManagement: React.FC = () => {
               </Button>
             </Link>
           </PermissionGuard>
-          <PermissionGuard permissions={[PERMISSIONS.USERS_CREATE]}>
+          <PermissionGuard permissions={['Users.Create']}>
             <Link to="/users/create">
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -446,19 +434,19 @@ export const UserManagement: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <PermissionGuard permissions={[PERMISSIONS.USERS_READ]}>
+                            <PermissionGuard permissions={['Users.Read']}>
                               <DropdownMenuItem onClick={() => setViewUser(user)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <PermissionGuard permissions={[PERMISSIONS.USERS_UPDATE]}>
+                            <PermissionGuard permissions={['Users.Update']}>
                               <DropdownMenuItem onClick={() => setEditUser(user)}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
                             </PermissionGuard>
-                            <PermissionGuard permissions={[PERMISSIONS.USERS_DELETE]}>
+                            <PermissionGuard permissions={['Users.Delete']}>
                               <DropdownMenuItem 
                                 onClick={() => setDeleteConfirm(user.id)} 
                                 className="text-red-600"

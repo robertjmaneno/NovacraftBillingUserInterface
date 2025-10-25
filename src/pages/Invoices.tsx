@@ -66,9 +66,10 @@ export const Invoices: React.FC = () => {
     page,
     pageSize: 10,
   });
-  const invoices = data?.data?.items || [];
-  const totalPages = data?.data?.totalPages || 1;
-  const totalCount = data?.data?.totalCount || 0;
+  const invoiceData = data?.data as { items?: Record<string, unknown>[], totalPages?: number, totalCount?: number } | undefined;
+  const invoices = invoiceData?.items || [];
+  const totalPages = invoiceData?.totalPages || 1;
+  const totalCount = invoiceData?.totalCount || 0;
 
   const sendEmailMutation = useSendInvoiceEmail();
   const downloadPdfMutation = useDownloadInvoicePdf();
@@ -76,7 +77,7 @@ export const Invoices: React.FC = () => {
 
   // View invoice details
   const { data: invoiceDetailsRaw, isLoading: isInvoiceLoading } = useInvoice(viewedInvoiceId!, { enabled: !!viewedInvoiceId });
-  const invoiceDetails: any = (invoiceDetailsRaw as any)?.data;
+  const invoiceDetails = (invoiceDetailsRaw as { data?: Record<string, unknown> })?.data;
 
   if (isLoading) {
     return <TableShimmer rows={5} columns={7} />;
@@ -155,24 +156,24 @@ export const Invoices: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice: any) => (
-                  <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
+                {invoices.map((invoice: Record<string, unknown>) => (
+                  <tr key={String(invoice.id)} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-4">
-                      <span className="font-semibold text-blue-600">{invoice.invoiceNumber || invoice.id}</span>
+                      <span className="font-semibold text-blue-600">{String(invoice.invoiceNumber || invoice.id)}</span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="text-gray-900">{invoice.customerName || '-'}</span>
+                      <span className="text-gray-900">{String(invoice.customerName || '-')}</span>
                     </td>
                     <td className="py-4 px-4">
                       <span className="font-semibold text-gray-900">{invoice.total !== undefined ? `${Number(invoice.total).toLocaleString()} ${invoice.currency || 'MWK'}` : '-'}</span>
                     </td>
                     <td className="py-4 px-4">
-                      <Badge className={getStatusColor(invoice.statusName || statusNameMap[invoice.status])}>
-                        {invoice.statusName || statusNameMap[invoice.status] || '-'}
+                      <Badge className={getStatusColor(String(invoice.statusName || statusNameMap[Number(invoice.status)] || '-'))}>
+                        {String(invoice.statusName || statusNameMap[Number(invoice.status)] || '-')}
                       </Badge>
                     </td>
-                    <td className="py-4 px-4 text-gray-600">{invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : '-'}</td>
-                    <td className="py-4 px-4 text-gray-600">{invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}</td>
+                    <td className="py-4 px-4 text-gray-600">{invoice.invoiceDate ? new Date(String(invoice.invoiceDate)).toLocaleDateString() : '-'}</td>
+                    <td className="py-4 px-4 text-gray-600">{invoice.dueDate ? new Date(String(invoice.dueDate)).toLocaleDateString() : '-'}</td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end">
                         <DropdownMenu>
@@ -182,10 +183,10 @@ export const Invoices: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setViewedInvoiceId(invoice.id)}>View</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => downloadPdfMutation.mutate(invoice.id)} disabled={downloadPdfMutation.isPending}>Download PDF</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => sendEmailMutation.mutate(invoice.id)} disabled={sendEmailMutation.isPending}>Send Email</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setStatusDialog({ open: true, id: invoice.id, status: '' })}>Update Status</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setViewedInvoiceId(String(invoice.id))}>View</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => downloadPdfMutation.mutate(String(invoice.id))} disabled={downloadPdfMutation.isPending}>Download PDF</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => sendEmailMutation.mutate(String(invoice.id))} disabled={sendEmailMutation.isPending}>Send Email</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatusDialog({ open: true, id: String(invoice.id), status: '' })}>Update Status</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -213,14 +214,14 @@ export const Invoices: React.FC = () => {
             <div className="p-8 text-center text-gray-500">Loading...</div>
           ) : invoiceDetails ? (
             (() => {
-              const inv = invoiceDetails;
+              const inv = invoiceDetails as Record<string, unknown>;
               return (
                 <div className="space-y-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h2 className="text-xl font-semibold text-gray-900 mb-2">{inv.invoiceNumber || inv.id}</h2>
+                      <h2 className="text-xl font-semibold text-gray-900 mb-2">{String(inv.invoiceNumber || inv.id)}</h2>
                       <div className="flex items-center gap-3 mb-4">
-                        <Badge>{inv.statusName || statusNameMap[inv.status] || '-'}</Badge>
+                        <Badge>{String(inv.statusName || statusNameMap[Number(inv.status)] || '-')}</Badge>
                       </div>
                     </div>
                   </div>
@@ -230,7 +231,7 @@ export const Invoices: React.FC = () => {
                         <Users className="w-5 h-5 text-blue-500 mt-0.5" />
                         <div>
                           <h3 className="font-medium text-gray-900 mb-2">Client</h3>
-                          <p className="text-gray-600 leading-relaxed">{inv.customerName || '-'}</p>
+                          <p className="text-gray-600 leading-relaxed">{String(inv.customerName || '-')}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -244,19 +245,19 @@ export const Invoices: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Subtotal:</span>
-                          <span className="font-semibold text-gray-900">{inv.subtotal !== undefined ? `${Number(inv.subtotal).toLocaleString()} ${inv.currency || 'MWK'}` : '-'}</span>
+                          <span className="font-semibold text-gray-900">{inv.subtotal !== undefined ? `${Number(inv.subtotal).toLocaleString()} ${String(inv.currency || 'MWK')}` : '-'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Discount:</span>
-                          <span className="font-semibold text-gray-900">{inv.discountAmount !== undefined ? `${Number(inv.discountAmount).toLocaleString()} ${inv.currency || 'MWK'}` : '-'} ({inv.discountPercent || 0}%)</span>
+                          <span className="font-semibold text-gray-900">{inv.discountAmount !== undefined ? `${Number(inv.discountAmount).toLocaleString()} ${String(inv.currency || 'MWK')}` : '-'} ({Number(inv.discountPercent || 0)}%)</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Tax:</span>
-                          <span className="font-semibold text-gray-900">{inv.taxAmount !== undefined ? `${Number(inv.taxAmount).toLocaleString()} ${inv.currency || 'MWK'}` : '-'} ({inv.taxPercent || 0}%)</span>
+                          <span className="font-semibold text-gray-900">{inv.taxAmount !== undefined ? `${Number(inv.taxAmount).toLocaleString()} ${String(inv.currency || 'MWK')}` : '-'} ({Number(inv.taxPercent || 0)}%)</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Total:</span>
-                          <span className="font-semibold text-gray-900">{inv.total !== undefined ? `${Number(inv.total).toLocaleString()} ${inv.currency || 'MWK'}` : '-'}</span>
+                          <span className="font-semibold text-gray-900">{inv.total !== undefined ? `${Number(inv.total).toLocaleString()} ${String(inv.currency || 'MWK')}` : '-'}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -268,11 +269,11 @@ export const Invoices: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Invoice Date:</span>
-                          <span className="font-semibold text-gray-900">{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : '-'}</span>
+                          <span className="font-semibold text-gray-900">{inv.invoiceDate ? new Date(String(inv.invoiceDate)).toLocaleDateString() : '-'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Due Date:</span>
-                          <span className="font-semibold text-gray-900">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : '-'}</span>
+                          <span className="font-semibold text-gray-900">{inv.dueDate ? new Date(String(inv.dueDate)).toLocaleDateString() : '-'}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -284,15 +285,15 @@ export const Invoices: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Status:</span>
-                          <span className="font-semibold text-gray-900">{inv.statusName || statusNameMap[inv.status] || '-'}</span>
+                          <span className="font-semibold text-gray-900">{String(inv.statusName || statusNameMap[Number(inv.status)] || '-')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Created By:</span>
-                          <span className="font-semibold text-gray-900">{inv.createdBy || '-'}</span>
+                          <span className="font-semibold text-gray-900">{String(inv.createdBy || '-')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Created At:</span>
-                          <span className="font-semibold text-gray-900">{inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : '-'}</span>
+                          <span className="font-semibold text-gray-900">{inv.createdAt ? new Date(String(inv.createdAt)).toLocaleDateString() : '-'}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -304,11 +305,11 @@ export const Invoices: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Notes:</span>
-                          <span className="font-semibold text-gray-900">{inv.notes || '-'}</span>
+                          <span className="font-semibold text-gray-900">{String(inv.notes || '-')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Terms & Conditions:</span>
-                          <span className="font-semibold text-gray-900">{inv.termsAndConditions || '-'}</span>
+                          <span className="font-semibold text-gray-900">{String(inv.termsAndConditions || '-')}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -321,12 +322,12 @@ export const Invoices: React.FC = () => {
                       </div>
                       <ul className="list-disc ml-6">
                         {Array.isArray(inv.items) && inv.items.length > 0
-                          ? inv.items.map((item: any, idx: number) => (
+                          ? (inv.items as Record<string, unknown>[]).map((item, idx: number) => (
                               <li key={idx} className="mb-2">
-                                <div><b>Name:</b> {item.description || '-'}</div>
-                                <div><b>Quantity:</b> {item.quantity ?? '-'}</div>
-                                <div><b>Rate:</b> {item.rate !== undefined ? `${Number(item.rate).toLocaleString()} ${inv.currency || 'MWK'}` : '-'}</div>
-                                <div><b>Amount:</b> {item.amount !== undefined ? `${Number(item.amount).toLocaleString()} ${inv.currency || 'MWK'}` : '-'}</div>
+                                <div><b>Name:</b> {String(item.description || '-')}</div>
+                                <div><b>Quantity:</b> {String(item.quantity ?? '-')}</div>
+                                <div><b>Rate:</b> {item.rate !== undefined ? `${Number(item.rate).toLocaleString()} ${String(inv.currency || 'MWK')}` : '-'}</div>
+                                <div><b>Amount:</b> {item.amount !== undefined ? `${Number(item.amount).toLocaleString()} ${String(inv.currency || 'MWK')}` : '-'}</div>
                               </li>
                             ))
                           : <li>-</li>}

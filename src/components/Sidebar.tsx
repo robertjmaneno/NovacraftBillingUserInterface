@@ -16,57 +16,64 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PERMISSIONS, usePermissions } from '@/hooks/use-permissions';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/contexts/AuthContext';
 
-const navigation = [
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permissions: string[];
+}
+
+const navigation: NavigationItem[] = [
   { 
     name: 'Dashboard', 
     href: '/', 
     icon: BarChart3,
-    permissions: ['View Dashboard'] // Proper new format from backend seeder
+    permissions: ['Dashboard.View'] // From JWT token
   },
   { 
     name: 'Invoices', 
     href: '/invoices', 
     icon: FileText,
-    permissions: ['View Invoices'] // Proper new format from backend seeder
+    permissions: ['Invoices.Read'] // From JWT token
   },
   { 
     name: 'Customers', 
     href: '/customers', 
     icon: Users,
-    permissions: ['View Customers'] // Proper new format from backend seeder
+    permissions: ['Customers.Read'] // From JWT token
   },
   { 
     name: 'Services', 
     href: '/services', 
     icon: Package,
-    permissions: ['View Services', 'View Products'] // Proper new format from backend seeder
+    permissions: ['Services.Read', 'Products.Read'] // From JWT token
   },
   { 
     name: 'Subscriptions', 
     href: '/subscriptions', 
     icon: Calendar,
-    permissions: ['View Subscriptions'] // Proper new format from backend seeder
+    permissions: ['Subscriptions.Read'] // From JWT token
   },
   { 
     name: 'Payments', 
     href: '/payments', 
     icon: CreditCard,
-    permissions: ['View Payments'] // Proper new format from backend seeder
+    permissions: ['Payments.Read'] // From JWT token
   },
   { 
     name: 'Reports', 
     href: '/reports', 
     icon: Receipt,
-    permissions: ['View Reports'] // Proper new format from backend seeder
+    permissions: ['Reports.View'] // From JWT token
   },
   { 
     name: 'Users', 
     href: '/users', 
     icon: UserCog,
-    permissions: ['View Users', 'Manage Users'] // Proper new format from backend seeder
+    permissions: ['Users.Read', 'Users.Manage'] // From JWT token
   },
   { 
     name: 'Profile', 
@@ -78,13 +85,13 @@ const navigation = [
     name: 'Invoice Template', 
     href: '/invoices/template', 
     icon: Palette,
-    permissions: ['View Invoice Templates'] // Proper new format from backend seeder
+    permissions: ['InvoiceTemplates.Read'] // From JWT token
   },
   { 
     name: 'Settings', 
     href: '/settings', 
     icon: Settings,
-    permissions: ['View Settings'] // Proper new format from backend seeder
+    permissions: ['Settings.Read'] // From JWT token
   },
 ];
 
@@ -98,7 +105,7 @@ export const Sidebar: React.FC = () => {
   };
 
   // Helper function to check if user should see menu item based on permissions only
-  const shouldShowMenuItem = (item: any) => {
+  const shouldShowMenuItem = (item: NavigationItem) => {
     // Profile is always visible (no permissions required)
     if (item.permissions.length === 0) {
       return true;

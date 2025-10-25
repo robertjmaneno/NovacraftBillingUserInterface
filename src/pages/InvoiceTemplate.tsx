@@ -96,13 +96,13 @@ export const InvoiceTemplate: React.FC = () => {
     setLoading(true);
     apiService.getInvoiceTemplate()
       .then(res => {
-        if (res.success && res.data) setTemplate(res.data);
+        if (res.success && res.data) setTemplate(res.data as InvoiceTemplate);
       })
       .catch(() => {
         toast({ title: 'Failed to load template', variant: 'destructive' });
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

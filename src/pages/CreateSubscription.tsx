@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ import { apiService } from '@/services/api';
 import { toast } from 'sonner';
 
 // Helper for generic POST requests
-const postApi = async (url: string, data: any) => {
+const postApi = async (url: string, data: Record<string, unknown>) => {
   const token = localStorage.getItem('authToken');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export const CreateSubscription: React.FC = () => {
   const { data: customersData, isLoading: customersLoading } = useCustomers();
   const customers = customersData?.data?.items || [];
   const { data: servicesData, isLoading: servicesLoading } = useServices(1, 100);
-  const services = servicesData?.data?.items || [];
+  const services = useMemo(() => servicesData?.data?.items || [], [servicesData]);
 
   const [servicePage, setServicePage] = useState(1);
   const servicesPerPage = 10;
@@ -123,8 +123,8 @@ export const CreateSubscription: React.FC = () => {
       await postApi('/api/subscription/bulk', bulkPayload);
       toast.success('Subscriptions created successfully!');
       navigate('/subscriptions');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to create subscription');
+    } catch (err: unknown) {
+      toast.error((err as { message?: string })?.message || 'Failed to create subscription');
     } finally {
       setSubmitting(false);
     }
