@@ -6,7 +6,7 @@ export interface JwtPayload {
   permission?: string | string[];
   exp?: number;
   iat?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function decodeJwtToken(token: string): JwtPayload | null {

@@ -36,7 +36,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useSubscriptions, usePauseSubscription, useResumeSubscription, useCancelSubscription, useUpdateSubscription } from '@/hooks/use-subscriptions';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@/services/api';
+import { apiService, Subscription } from '@/services/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,31 +70,31 @@ const getPlanColor = (plan: string) => {
 };
 
 // Helper function to get customer display name
-const getCustomerDisplayName = (customer: any) => {
+const getCustomerDisplayName = (customer: Record<string, unknown>) => {
   if (!customer) return 'Unknown Customer';
   
   // For business customers (customerType === 1), show organization name
-  if (customer.customerType === 1 && customer.organizationName && customer.organizationName.trim()) {
-    return customer.organizationName;
+  if (customer.customerType === 1 && customer.organizationName && (customer.organizationName as string).trim()) {
+    return customer.organizationName as string;
   }
   
   // For individual customers (customerType === 0), show first name + last name
   if (customer.customerType === 0) {
-    const firstName = customer.firstName?.trim() || '';
-    const lastName = customer.lastName?.trim() || '';
+    const firstName = (customer.firstName as string)?.trim() || '';
+    const lastName = (customer.lastName as string)?.trim() || '';
     if (firstName || lastName) {
       return `${firstName} ${lastName}`.trim();
     }
   }
   
   // Fallback: show email if available
-  if (customer.email && customer.email.trim()) {
-    return customer.email;
+  if (customer.email && (customer.email as string).trim()) {
+    return customer.email as string;
   }
   
   // Final fallback: show phone number
-  if (customer.phoneNumber && customer.phoneNumber.trim()) {
-    return customer.phoneNumber;
+  if (customer.phoneNumber && (customer.phoneNumber as string).trim()) {
+    return customer.phoneNumber as string;
   }
   
   return 'Unknown Customer';
@@ -150,10 +150,10 @@ export const Subscriptions: React.FC = () => {
   const resumeMutation = useResumeSubscription();
   const cancelMutation = useCancelSubscription();
   const updateSubscriptionMutation = useUpdateSubscription();
-  const [viewedSubscription, setViewedSubscription] = useState<any | null>(null);
-  const [editSubscription, setEditSubscription] = useState<any | null>(null);
-  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; sub: any | null }>({ open: false, sub: null });
-  const [editForm, setEditForm] = useState<any | null>(null);
+  const [viewedSubscription, setViewedSubscription] = useState<Record<string, unknown> | null>(null);
+  const [editSubscription, setEditSubscription] = useState<Record<string, unknown> | null>(null);
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; sub: Record<string, unknown> | null }>({ open: false, sub: null });
+  const [editForm, setEditForm] = useState<Record<string, unknown> | null>(null);
 
   const handlePause = (id: string | number) => {
     pauseMutation.mutate(id);
@@ -163,12 +163,12 @@ export const Subscriptions: React.FC = () => {
   };
 
   // Cancel handler
-  const handleCancel = (sub: any) => {
+  const handleCancel = (sub: Record<string, unknown>) => {
     setCancelDialog({ open: true, sub });
   };
   const confirmCancel = () => {
     if (cancelDialog.sub) {
-      cancelMutation.mutate({ id: cancelDialog.sub.id, reason: 'Cancelled by user' }, {
+      cancelMutation.mutate({ id: cancelDialog.sub.id as string | number, reason: 'Cancelled by user' }, {
         onSuccess: () => {
           toast.success('Subscription cancelled');
           setCancelDialog({ open: false, sub: null });
@@ -181,11 +181,11 @@ export const Subscriptions: React.FC = () => {
   };
 
   // View handler
-  const handleView = (sub: any) => {
+  const handleView = (sub: Record<string, unknown>) => {
     setViewedSubscription(sub);
   };
   // Edit handler
-  const handleEdit = (sub: any) => {
+  const handleEdit = (sub: Record<string, unknown>) => {
     setEditSubscription(sub);
   };
   const closeEdit = () => setEditSubscription(null);
@@ -193,9 +193,9 @@ export const Subscriptions: React.FC = () => {
   React.useEffect(() => {
     if (editSubscription) {
       setEditForm({
-        amount: editSubscription.amount || '',
-        notes: editSubscription.notes || '',
-        nextBillingDate: editSubscription.nextBillingDate ? editSubscription.nextBillingDate.split('T')[0] : '',
+        amount: String(editSubscription.amount) || '',
+        notes: (editSubscription as unknown as Record<string, unknown>).notes as string || '',
+        nextBillingDate: editSubscription.nextBillingDate ? (editSubscription.nextBillingDate as string).split('T')[0] : '',
       });
     }
   }, [editSubscription]);
@@ -206,11 +206,11 @@ export const Subscriptions: React.FC = () => {
     e.preventDefault();
     if (!editSubscription) return;
     updateSubscriptionMutation.mutate({
-      id: editSubscription.id,
+      id: editSubscription.id as string | number,
       data: {
-        amount: Number(editForm.amount),
-        notes: editForm.notes,
-        nextBillingDate: editForm.nextBillingDate,
+        amount: Number((editForm as Record<string, unknown>).amount),
+        notes: (editForm as Record<string, unknown>).notes as string,
+        nextBillingDate: (editForm as Record<string, unknown>).nextBillingDate as string,
       },
     }, {
       onSuccess: () => {
@@ -370,18 +370,18 @@ export const Subscriptions: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subscriptions.map((subscription: any) => (
+                  {subscriptions.map((subscription) => (
                     <TableRow key={subscription.id} className="hover:bg-gray-50">
                       <TableCell>
                         <div className="font-semibold text-gray-900">{subscription.subscriptionCode}</div>
                       </TableCell>
                       <TableCell>
                         <span className="font-medium text-gray-900">
-                          {getCustomerDisplayName(subscription.customer)}
+                          {getCustomerDisplayName((subscription as unknown as Record<string, unknown>).customer as Record<string, unknown>)}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium text-gray-900">{subscription.service?.name}</span>
+                        <span className="font-medium text-gray-900">{((subscription as unknown as Record<string, unknown>).service as Record<string, unknown>)?.name as string}</span>
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-gray-900">{subscription.amount ? `${Number(subscription.amount).toLocaleString()} MWK` : '-'}</span>
@@ -390,7 +390,7 @@ export const Subscriptions: React.FC = () => {
                         <span className="text-sm text-gray-900">{subscription.nextBillingDate ? new Date(subscription.nextBillingDate).toLocaleDateString() : '-'}</span>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(subscription.status)}>
+                        <Badge className={getStatusColor(subscription.status ?? 0)}>
                           {subscription.status === 1 ? 'Active' : subscription.status === 2 ? 'Paused' : subscription.status === 3 ? 'Cancelled' : 'Other'}
                         </Badge>
                       </TableCell>
@@ -402,9 +402,9 @@ export const Subscriptions: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleView(subscription)}>View</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(subscription)}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCancel(subscription)} disabled={cancelMutation.status === 'pending'}>Cancel</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleView(subscription as unknown as Record<string, unknown>)}>View</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(subscription as unknown as Record<string, unknown>)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCancel(subscription as unknown as Record<string, unknown>)} disabled={cancelMutation.status === 'pending'}>Cancel</DropdownMenuItem>
                             {subscription.status === 1 ? (
                               <DropdownMenuItem onClick={() => handlePause(subscription.id)} disabled={pauseMutation.status === 'pending'}>Pause</DropdownMenuItem>
                             ) : (
@@ -485,18 +485,18 @@ export const Subscriptions: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {upcomingSubscriptions.map((subscription: any) => (
+                    {upcomingSubscriptions.map((subscription) => (
                       <TableRow key={subscription.id} className="hover:bg-gray-50">
                         <TableCell>
                           <div className="font-semibold text-gray-900">{subscription.subscriptionCode}</div>
                         </TableCell>
                         <TableCell>
                           <span className="font-medium text-gray-900">
-                            {getCustomerDisplayName(subscription.customer)}
+                            {getCustomerDisplayName((subscription as unknown as Record<string, unknown>).customer as Record<string, unknown>)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="font-medium text-gray-900">{subscription.service?.name}</span>
+                          <span className="font-medium text-gray-900">{((subscription as unknown as Record<string, unknown>).service as Record<string, unknown>)?.name as string}</span>
                         </TableCell>
                         <TableCell>
                           <span className="font-semibold text-gray-900">{subscription.amount ? `${Number(subscription.amount).toLocaleString()} MWK` : '-'}</span>
@@ -531,9 +531,9 @@ export const Subscriptions: React.FC = () => {
             <div className="space-y-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{viewedSubscription.subscriptionCode}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{viewedSubscription.subscriptionCode as string}</h2>
                   <div className="flex items-center gap-3 mb-4">
-                    <Badge>{viewedSubscription.status === 1 ? 'Active' : viewedSubscription.status === 2 ? 'Paused' : viewedSubscription.status === 3 ? 'Cancelled' : 'Other'}</Badge>
+                    <Badge>{(viewedSubscription.status as number) === 1 ? 'Active' : (viewedSubscription.status as number) === 2 ? 'Paused' : (viewedSubscription.status as number) === 3 ? 'Cancelled' : 'Other'}</Badge>
                   </div>
                 </div>
               </div>
@@ -543,7 +543,7 @@ export const Subscriptions: React.FC = () => {
                     <Users className="w-5 h-5 text-blue-500 mt-0.5" />
                     <div>
                       <h3 className="font-medium text-gray-900 mb-2">Customer</h3>
-                      <p className="text-gray-600 leading-relaxed">{getCustomerDisplayName(viewedSubscription.customer)}</p>
+                      <p className="text-gray-600 leading-relaxed">{getCustomerDisplayName(viewedSubscription.customer as Record<string, unknown>)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -569,7 +569,7 @@ export const Subscriptions: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Next Billing:</span>
-                      <span className="font-semibold text-gray-900">{viewedSubscription.nextBillingDate ? new Date(viewedSubscription.nextBillingDate).toLocaleDateString() : '-'}</span>
+                      <span className="font-semibold text-gray-900">{viewedSubscription.nextBillingDate ? new Date(viewedSubscription.nextBillingDate as string).toLocaleDateString() : '-'}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -581,7 +581,7 @@ export const Subscriptions: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Service:</span>
-                      <span className="font-semibold text-gray-900">{viewedSubscription.service?.name}</span>
+                      <span className="font-semibold text-gray-900">{((viewedSubscription as Record<string, unknown>).service as Record<string, unknown>)?.name as string}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -593,7 +593,7 @@ export const Subscriptions: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Notes:</span>
-                      <span className="font-semibold text-gray-900">{viewedSubscription.notes || '-'}</span>
+                      <span className="font-semibold text-gray-900">{((viewedSubscription as Record<string, unknown>).notes as string) || '-'}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -632,7 +632,7 @@ export const Subscriptions: React.FC = () => {
                   id="amount"
                   name="amount"
                   type="number"
-                  value={editForm && editForm.amount || ''}
+                  value={editForm && (editForm as Record<string, unknown>).amount as string || ''}
                   onChange={handleEditChange}
                   min={0}
                   required
@@ -644,7 +644,7 @@ export const Subscriptions: React.FC = () => {
                   id="nextBillingDate"
                   name="nextBillingDate"
                   type="date"
-                  value={editForm && editForm.nextBillingDate || ''}
+                  value={editForm && (editForm as Record<string, unknown>).nextBillingDate as string || ''}
                   onChange={handleEditChange}
                   required
                 />
@@ -654,7 +654,7 @@ export const Subscriptions: React.FC = () => {
                 <Textarea
                   id="notes"
                   name="notes"
-                  value={editForm && editForm.notes || ''}
+                  value={editForm && (editForm as Record<string, unknown>).notes as string || ''}
                   onChange={handleEditChange}
                   rows={3}
                 />

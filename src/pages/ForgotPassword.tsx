@@ -30,12 +30,16 @@ export const ForgotPassword: React.FC = () => {
           description: "If the email exists, a password reset link has been sent.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Forgot password error:', error);
+      
+      const errorMessage = (error && typeof (error as { message?: unknown }).message === 'string')
+        ? (error as { message: string }).message
+        : "Failed to send reset email. Please try again.";
       
       toast({
         title: "Error",
-        description: error.message || "Failed to send reset email. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

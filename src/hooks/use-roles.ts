@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService } from '@/services/api';
+import { apiService, CreateRoleRequest } from '@/services/api';
 import { toast } from 'sonner';
 
 // Query keys
 export const roleKeys = {
   all: ['roles'] as const,
   lists: () => [...roleKeys.all, 'list'] as const,
-  list: (filters: any) => [...roleKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) => [...roleKeys.lists(), filters] as const,
   details: () => [...roleKeys.all, 'detail'] as const,
   detail: (id: string) => [...roleKeys.details(), id] as const,
   permissions: (roleId: string) => [...roleKeys.detail(roleId), 'permissions'] as const,
@@ -64,7 +64,7 @@ export const useCreateRole = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: any) => apiService.createRole(data),
+    mutationFn: (data: CreateRoleRequest) => apiService.createRole(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: roleKeys.lists() });
       queryClient.invalidateQueries({ queryKey: roleKeys.active() });
@@ -81,7 +81,7 @@ export const useUpdateRole = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       apiService.updateRole(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: roleKeys.detail(id) });
@@ -152,7 +152,7 @@ export const useUpdateRolePermissions = () => {
 
   return useMutation({
     mutationFn: ({ roleId, permissionIds }: { roleId: string; permissionIds: string[] }) =>
-      apiService.updateRolePermissions(roleId, permissionIds),
+      apiService.updateRolePermissions(roleId, permissionIds.map(id => Number(id))),
     onSuccess: (_, { roleId }) => {
       queryClient.invalidateQueries({ queryKey: roleKeys.permissions(roleId) });
       queryClient.invalidateQueries({ queryKey: roleKeys.detail(roleId) });

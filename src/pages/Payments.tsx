@@ -118,7 +118,8 @@ export const Payments: React.FC = () => {
     try {
       const res = await apiService.getPaymentById(paymentId);
       setViewedPayment(res.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error('Failed to fetch payment details:', err);
       setViewedPayment(null);
     } finally {
       setModalLoading(false);

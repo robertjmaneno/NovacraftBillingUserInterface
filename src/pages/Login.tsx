@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, FileText, Receipt, Calculator, CreditCard, Loader2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useApiErrorToast } from '@/hooks/use-api-error-toast';
 import { useToast } from '@/hooks/use-toast';
 
 export const Login: React.FC = () => {
@@ -19,6 +20,7 @@ export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { showApiError } = useApiErrorToast();
   const { toast } = useToast();
 
   
@@ -79,14 +81,9 @@ export const Login: React.FC = () => {
         });
         navigate('/mfa', { replace: true });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
-      let errorMessage = error.message || 'Login failed. Please try again.';
-      toast({
-        title: "Login failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      showApiError(error, "Login failed");
     } finally {
       setIsLoading(false);
     }

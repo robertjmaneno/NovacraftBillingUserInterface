@@ -22,31 +22,31 @@ import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 
 // Helper function to get customer display name (same as in Subscriptions)
-const getCustomerDisplayName = (customer: any) => {
+const getCustomerDisplayName = (customer: Record<string, unknown>) => {
   if (!customer) return 'Unknown Customer';
   
   // For business customers (customerType === 1), show organization name
-  if (customer.customerType === 1 && customer.organizationName && customer.organizationName.trim()) {
-    return customer.organizationName;
+  if (customer.customerType === 1 && customer.organizationName && (customer.organizationName as string).trim()) {
+    return customer.organizationName as string;
   }
   
   // For individual customers (customerType === 0), show first name + last name
   if (customer.customerType === 0) {
-    const firstName = customer.firstName?.trim() || '';
-    const lastName = customer.lastName?.trim() || '';
+    const firstName = (customer.firstName as string)?.trim() || '';
+    const lastName = (customer.lastName as string)?.trim() || '';
     if (firstName || lastName) {
       return `${firstName} ${lastName}`.trim();
     }
   }
   
   // Fallback: show email if available
-  if (customer.email && customer.email.trim()) {
-    return customer.email;
+  if (customer.email && (customer.email as string).trim()) {
+    return customer.email as string;
   }
   
   // Final fallback: show phone number
-  if (customer.phoneNumber && customer.phoneNumber.trim()) {
-    return customer.phoneNumber;
+  if (customer.phoneNumber && (customer.phoneNumber as string).trim()) {
+    return customer.phoneNumber as string;
   }
   
   return 'Unknown Customer';
@@ -141,9 +141,9 @@ export const Dashboard: React.FC = () => {
 
   // Calculate stats from API data
   const totalRevenue = (paymentStats?.data?.totalPayments || 0) + (subscriptionRevenue?.data || 0);
-  const totalCustomers = customersData?.data?.totalCount || 0;
-  const totalInvoices = invoicesData?.data?.totalCount || 0;
-  const recentInvoices = invoicesData?.data?.items || [];
+  const totalCustomers = (customersData?.data as Record<string, unknown>)?.totalCount as number || 0;
+  const totalInvoices = (invoicesData?.data as Record<string, unknown>)?.totalCount as number || 0;
+  const recentInvoices = (invoicesData?.data as Record<string, unknown>)?.items as unknown[] || [];
 
   const stats = [
     {
@@ -269,22 +269,22 @@ export const Dashboard: React.FC = () => {
           <CardContent>
             <div className="space-y-2">
               {recentInvoices.length > 0 ? (
-                recentInvoices.map((invoice: any) => (
-                  <div key={invoice.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                recentInvoices.map((invoice: Record<string, unknown>) => (
+                  <div key={invoice.id as string} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
                     <div className="flex items-center space-x-3 flex-1">
                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                         <FileText className="w-4 h-4 text-blue-600" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-semibold text-sm text-gray-900">{invoice.invoiceNumber || `INV-${invoice.id}`}</span>
-                          <Badge className={`${getStatusColor(statusNameMap[invoice.status] || 'Unknown')} text-xs flex items-center space-x-1`}>
-                            {getStatusIcon(statusNameMap[invoice.status] || 'Unknown')}
-                            <span>{statusNameMap[invoice.status] || 'Unknown'}</span>
+                          <span className="font-semibold text-sm text-gray-900">{(invoice.invoiceNumber as string) || `INV-${invoice.id}`}</span>
+                          <Badge className={`${getStatusColor(statusNameMap[invoice.status as keyof typeof statusNameMap] || 'Unknown')} text-xs flex items-center space-x-1`}>
+                            {getStatusIcon(statusNameMap[invoice.status as keyof typeof statusNameMap] || 'Unknown')}
+                            <span>{statusNameMap[invoice.status as keyof typeof statusNameMap] || 'Unknown'}</span>
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-600">{getCustomerDisplayName(invoice.customer)}</p>
-                        <p className="text-xs text-gray-500">{invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : '-'}</p>
+                        <p className="text-xs text-gray-600">{getCustomerDisplayName(invoice.customer as Record<string, unknown>)}</p>
+                        <p className="text-xs text-gray-500">{invoice.createdAt ? new Date(invoice.createdAt as string).toLocaleDateString() : '-'}</p>
                       </div>
                     </div>
                     <div className="text-right">

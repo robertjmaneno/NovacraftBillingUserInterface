@@ -38,9 +38,9 @@ export const useCreateCustomer = () => {
         toast.error(response.message || 'Failed to create customer');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to create customer:', error);
-      toast.error(error?.message || 'Failed to create customer');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to create customer');
     },
   });
 };
@@ -62,9 +62,9 @@ export const useUpdateCustomer = () => {
         toast.error(response.message || 'Failed to update customer');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to update customer:', error);
-      toast.error(error?.message || 'Failed to update customer');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to update customer');
     },
   });
 };
@@ -86,9 +86,9 @@ export const useDeleteCustomer = () => {
         toast.error(response.message || 'Failed to delete customer');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to delete customer:', error);
-      toast.error(error?.message || 'Failed to delete customer');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to delete customer');
     },
   });
 };
@@ -133,9 +133,9 @@ export const useAddCustomerAddress = () => {
         toast.error(response.message || 'Failed to add address');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to add address:', error);
-      toast.error(error?.message || 'Failed to add address');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to add address');
     },
   });
 };
@@ -156,9 +156,9 @@ export const useAddCustomerDocument = () => {
         toast.error(response.message || 'Failed to add document');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to add document:', error);
-      toast.error(error?.message || 'Failed to add document');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to add document');
     },
   });
 };
@@ -182,9 +182,9 @@ export const useAddMultipleCustomerDocuments = () => {
         toast.error(response.message || 'Failed to add documents');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to add documents:', error);
-      toast.error(error?.message || 'Failed to add documents');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to add documents');
     },
   });
 }; 

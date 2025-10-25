@@ -5,19 +5,19 @@ import { toast } from 'sonner';
 export const invoiceKeys = {
   all: ['invoices'] as const,
   lists: () => [...invoiceKeys.all, 'list'] as const,
-  list: (filters: any) => [...invoiceKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) => [...invoiceKeys.lists(), filters] as const,
   details: () => [...invoiceKeys.all, 'detail'] as const,
   detail: (id: string | number) => [...invoiceKeys.details(), id] as const,
 };
 
-export function useInvoices(filters: any = {}) {
+export function useInvoices(filters: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: invoiceKeys.list(filters),
     queryFn: () => apiService.getInvoices(filters),
   });
 }
 
-export function useInvoice(id: string | number, options: any = {}) {
+export function useInvoice(id: string | number, options: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: invoiceKeys.detail(id),
     queryFn: () => apiService.getInvoiceById(id),
@@ -81,15 +81,9 @@ export function useUpdateInvoiceStatus() {
     },
     onSuccess: (response, variables) => {
       toast.success('Invoice status updated');
-      // Update the detail cache
-      queryClient.setQueryData(
-        invoiceKeys.detail(variables.id),
-        (old: any) => ({
-          ...old,
-          data: response.data,
-        })
-      );
-      // Invalidate all invoice list queries (with any filters)
+    
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(variables.id) });
+    
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
     },
     onError: () => {

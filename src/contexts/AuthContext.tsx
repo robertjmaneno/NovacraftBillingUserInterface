@@ -172,15 +172,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         throw new Error(response.message);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Login failed:', error);
       if (error && typeof error === 'object') {
         console.error('Error object:', error);
-        if ('message' in error) {
-          console.error('Error message:', (error as any).message);
+        if ('message' in error && typeof (error as { message: unknown }).message === 'string') {
+          console.error('Error message:', (error as { message: string }).message);
         }
         if ('response' in error) {
-          console.error('Error response:', (error as any).response);
+          console.error('Error response:', (error as { response: unknown }).response);
         }
       }
       

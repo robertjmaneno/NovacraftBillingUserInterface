@@ -111,12 +111,16 @@ export const ResetPassword: React.FC = () => {
           description: "Your password has been reset successfully.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Reset password error:', error);
+      
+      const errorMessage = (error && typeof (error as { message?: unknown }).message === 'string')
+        ? (error as { message: string }).message
+        : "Failed to reset password. Please try again.";
       
       toast({
         title: "Reset failed",
-        description: error.message || "Failed to reset password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -203,11 +207,15 @@ export const ResetPassword: React.FC = () => {
         // Do NOT navigate away
         return;
       }
-    } catch (error: any) {
-      setFirstLoginError(error.message || "Failed to reset password. Please try again.");
+    } catch (error: unknown) {
+      const errorMessage = (error && typeof (error as { message?: unknown }).message === 'string')
+        ? (error as { message: string }).message
+        : "Failed to reset password. Please try again.";
+      
+      setFirstLoginError(errorMessage);
       toast({
         title: "Reset failed",
-        description: error.message || "Failed to reset password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

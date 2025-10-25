@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService } from '@/services/api';
+import { apiService, CreateUserRequest } from '@/services/api';
 import { toast } from 'sonner';
 
 // Query keys
 export const userKeys = {
   all: ['users'] as const,
   lists: () => [...userKeys.all, 'list'] as const,
-  list: (filters: any) => [...userKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) => [...userKeys.lists(), filters] as const,
   details: () => [...userKeys.all, 'detail'] as const,
   detail: (id: string) => [...userKeys.details(), id] as const,
   roles: (userId: string) => [...userKeys.detail(userId), 'roles'] as const,
@@ -109,7 +109,7 @@ export const useCreateUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: any) => apiService.register(data),
+    mutationFn: (data: CreateUserRequest) => apiService.register(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       toast.success('User created successfully');
@@ -125,7 +125,7 @@ export const useUpdateUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       apiService.updateUser(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });

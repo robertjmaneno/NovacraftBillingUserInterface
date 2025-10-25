@@ -341,8 +341,8 @@ const RoleForm: React.FC<{
   role: Role | null;
   permissions: Permission[];
   onClose: () => void;
-  createRoleMutation: any;
-  updateRoleMutation: any;
+  createRoleMutation: { mutateAsync: (data: unknown) => Promise<unknown>; isPending: boolean };
+  updateRoleMutation: { mutateAsync: (data: unknown) => Promise<unknown>; isPending: boolean };
   isLoading?: boolean;
   onRoleCreated?: (data: {role: Role, permissions: Permission[]}) => void;
 }> = ({ role, permissions, onClose, createRoleMutation, updateRoleMutation, isLoading = false, onRoleCreated }) => {

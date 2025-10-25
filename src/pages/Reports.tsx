@@ -85,7 +85,9 @@ export const Reports: React.FC = () => {
   } = useQuery({ queryKey: ['report-total-invoices'], queryFn: () => apiService.getReportTotalInvoices() });
 
 
-  const isForbidden = (...errs: any[]) => errs.some(e => (e && (e.status === 403 || (e.response && e.response.status === 403))));
+  const isForbidden = (...errs: unknown[]) => errs.some(e => (e && typeof e === 'object' && 
+    ((e as { status?: unknown }).status === 403 || 
+     ((e as { response?: { status?: unknown } }).response?.status === 403))));
   if (
     isForbidden(errorTotalRevenue, errorCustomers, errorOutstandingAmount, errorTopClients, errorInvoiceStatus, errorInvoiceVolumeTrend, errorMonthlyRevenueTrend)
   ) {
@@ -113,9 +115,12 @@ export const Reports: React.FC = () => {
     isLoadingMonthlyRevenueTrend;
 
 
-  const renderError = (error: any, fallback: string) => (
-    <div className="text-red-500 text-sm text-center py-2">{error?.message || fallback}</div>
-  );
+  const renderError = (error: unknown, fallback: string) => {
+    const message = (error && typeof (error as { message?: unknown }).message === 'string')
+      ? (error as { message: string }).message
+      : fallback;
+    return <div className="text-red-500 text-sm text-center py-2">{message}</div>;
+  };
 
   // Data
   const totalRevenue = totalRevenueData?.data ?? 0;
@@ -130,25 +135,25 @@ export const Reports: React.FC = () => {
     Cancelled: '#EF4444',
     Pending: '#F59E0B',
   };
-  let statusData = (invoiceStatusData?.data ?? []).map((item: any) => ({
-    name: item.status,
-    value: Math.round(item.percentage), 
-    color: statusColorMap[item.status] || '#6B7280',
-    amount: item.totalAmount,
+  let statusData = (invoiceStatusData?.data ?? []).map((item: Record<string, unknown>) => ({
+    name: item.status as string,
+    value: Math.round((item.percentage as number) || 0), 
+    color: statusColorMap[(item.status as string)] || '#6B7280',
+    amount: item.totalAmount as number,
   }));
   
   statusData = statusData.sort((a, b) => b.value - a.value);
   
-  const topClients = (topClientsData?.data ?? []).map((item: any) => ({
-    name: item.customerName,
-    invoices: item.invoiceCount,
-    revenue: item.totalRevenue,
-    growth: (item.revenueGrowthPercent >= 0 ? '+' : '') + item.revenueGrowthPercent + '%',
+  const topClients = (topClientsData?.data ?? []).map((item: Record<string, unknown>) => ({
+    name: item.customerName as string,
+    invoices: item.invoiceCount as number,
+    revenue: item.totalRevenue as number,
+    growth: (((item.revenueGrowthPercent as number) >= 0 ? '+' : '') + (item.revenueGrowthPercent as number) + '%'),
   }));
   const invoiceVolumeTrend = invoiceVolumeTrendData?.data ?? [];
-  const monthlyRevenue = (monthlyRevenueTrendData?.data ?? []).map((item: any, idx: number) => ({
-    month: item.month,
-    revenue: item.revenue,
+  const monthlyRevenue = (monthlyRevenueTrendData?.data ?? []).map((item: Record<string, unknown>, idx: number) => ({
+    month: item.month as string,
+    revenue: item.revenue as number,
     invoices: invoiceVolumeTrend[idx]?.invoiceCount ?? 0,
     expenses: 0 
   }));

@@ -594,6 +594,45 @@ export interface BillingCycleResponse {
   data: BillingCycle[];
 }
 
+// Subscription Management Interfaces
+export interface Subscription {
+  id: number;
+  subscriptionCode: string;
+  customerId: number;
+  customerName?: string;
+  serviceId?: number;
+  serviceName?: string;
+  status?: number;
+  startDate?: string;
+  endDate?: string | null;
+  nextBillingDate?: string | null;
+  amount?: number;
+  billingCycle?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string | null;
+}
+
+export interface SubscriptionListResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items: Subscription[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  };
+}
+
+export interface SubscriptionResponse {
+  success: boolean;
+  message: string;
+  data: Subscription;
+}
+
 export interface ServiceStatsResponse {
   success: boolean;
   message: string;
@@ -686,6 +725,17 @@ export interface PaymentStatsResponse {
 class ApiService {
   private baseUrl: string;
 
+  // Custom error type for API errors to carry HTTP status and details
+  private ApiError = class ApiError extends Error {
+    status?: number;
+    details?: unknown;
+    constructor(message?: string, status?: number, details?: unknown) {
+      super(message || 'API Error');
+      this.name = 'ApiError';
+      this.status = status;
+      this.details = details;
+    }
+  };
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
   }
@@ -709,14 +759,15 @@ class ApiService {
     if (!skipAuth) {
       const token = localStorage.getItem('authToken');
       if (token) {
-        // Check if token is expired
+      
         const { isTokenExpired } = await import('../lib/jwt-utils');
         if (isTokenExpired(token)) {
           console.log('Token is expired, clearing auth data');
           localStorage.removeItem('authToken');
           localStorage.removeItem('authUser');
-          // Do NOT redirect to login
-          return {} as T; 
+          
+          const Err = this.ApiError;
+          throw new Err('Authentication token expired. Please sign in again.', 401);
         }
         requestConfig.headers = {
           ...requestConfig.headers,
@@ -736,54 +787,52 @@ class ApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('API Error Response:', errorData);
-        console.error('Error data type:', typeof errorData);
-        console.error('Error data keys:', Object.keys(errorData));
-        if (errorData.errors) {
-          console.error('Errors array:', errorData.errors);
-          console.error('Errors array type:', typeof errorData.errors);
-          console.error('Errors array length:', Array.isArray(errorData.errors) ? errorData.errors.length : 'Not an array');
-        }
         console.error('Response status:', response.status);
         console.error('Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        // Handle 401 Unauthorized - check if it's a locked account
-        if (response.status === 401) {
-          console.log('Unauthorized access, checking for lock reason');
-          
-       
-          let errorMessage = 'Authentication failed';
-          if (errorData && errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData && errorData.title) {
-            errorMessage = errorData.title;
-          }
-          
-      
-          if (errorMessage.toLowerCase().includes('lock') || 
-              errorMessage.toLowerCase().includes('suspended') ||
-              errorMessage.toLowerCase().includes('disabled')) {
-            console.log('Account is locked/suspended:', errorMessage);
-           
-            throw new Error(errorMessage);
-          }
-          
-          // For other 401 errors, redirect to login
-          console.log('Unauthorized access, redirecting to login');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('authUser');
-          // Do NOT redirect to login
-          return {} as T; 
+
+        const Err = this.ApiError;
+
+        // Extract a useful message from the payload
+        let serverMessage = '';
+        if (errorData && typeof errorData === 'object') {
+          serverMessage = (errorData.message || errorData.title || '') as string;
         }
-        
-        // Handle validation errors specifically
-        if (errorData.errors && typeof errorData.errors === 'object') {
-          const validationErrors = Object.entries(errorData.errors)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('; ');
-          throw new Error(`Validation errors: ${validationErrors}`);
+
+        // Map common status codes to user-friendly messages
+        switch (response.status) {
+          case 400: {
+            // Validation errors
+            if (errorData && errorData.errors && typeof errorData.errors === 'object') {
+              const validationErrors = Object.entries(errorData.errors)
+                .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                .join('; ');
+              throw new Err(`Validation errors: ${validationErrors}`, 400, errorData.errors);
+            }
+            throw new Err(serverMessage || 'Bad request. Please check your input and try again.', 400, errorData);
+          }
+          case 401: {
+            // Unauthorized - invalid credentials or expired token
+            const message = serverMessage || 'Invalid email or password.';
+            // If server indicates lock/suspended, surface that exact message
+            if (message.toLowerCase().includes('lock') || message.toLowerCase().includes('suspended') || message.toLowerCase().includes('disabled')) {
+              throw new Err(message, 401, errorData);
+            }
+            // Clear local auth for unauthorized responses
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            throw new Err(message, 401, errorData);
+          }
+          case 403:
+            throw new Err(serverMessage || "You don't have permission to perform this action.", 403, errorData);
+          case 404:
+            throw new Err(serverMessage || `Resource not found: ${url}`, 404, errorData);
+          case 423:
+            // Locked
+            throw new Err(serverMessage || 'Your account is locked. Contact support.', 423, errorData);
+          case 500:
+          default:
+            throw new Err(serverMessage || 'Server error. Please try again later or contact support.', response.status || 500, errorData);
         }
-        
-        throw new Error(errorData.message || errorData.title || `HTTP error! status: ${response.status}`);
       }
 
      
@@ -796,13 +845,25 @@ class ApiService {
       const responseData = await response.json();
       console.log('API Response for', url, ':', responseData);
       return responseData;
-    } catch (error: any) {
-      // If the error is from the backend and has a message, throw it
-      if (error && error.message && error.message !== 'Failed to fetch') {
-        console.error('API error:', error.message);
+    } catch (error: unknown) {
+      const Err = this.ApiError;
+
+      // If it's already an ApiError, rethrow
+      if (error instanceof Err) {
         throw error;
       }
-      throw new Error('Unable to connect to the server. Please try again later.');
+
+      // If the error is an Error with a useful message, surface that
+      const maybeMsg = (error && typeof (error as unknown as { message?: unknown }).message === 'string')
+        ? (error as unknown as { message: string }).message
+        : '';
+      if (maybeMsg && maybeMsg !== 'Failed to fetch') {
+        console.error('API error:', maybeMsg);
+        throw error;
+      }
+
+      // Generic network/connectivity fallback
+      throw new Err('Unable to connect to the server. Please try again later.');
     }
   }
 
@@ -1501,7 +1562,7 @@ class ApiService {
   }
 
   // Subscription Management Methods
-  async getSubscriptions(params: any = {}): Promise<any> {
+  async getSubscriptions(params: Record<string, unknown> = {}): Promise<SubscriptionListResponse> {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -1509,114 +1570,114 @@ class ApiService {
       }
     });
     const queryString = searchParams.toString();
-    return this.request<any>(`/api/subscription${queryString ? `?${queryString}` : ''}`);
+    return this.request<SubscriptionListResponse>(`/api/subscription${queryString ? `?${queryString}` : ''}`);
   }
 
-  async getSubscriptionById(id: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}`);
+  async getSubscriptionById(id: string | number): Promise<SubscriptionResponse> {
+    return this.request<SubscriptionResponse>(`/api/subscription/${id}`);
   }
 
-  async getSubscriptionByCode(subscriptionCode: string): Promise<any> {
-    return this.request<any>(`/api/subscription/code/${subscriptionCode}`);
+  async getSubscriptionByCode(subscriptionCode: string): Promise<SubscriptionResponse> {
+    return this.request<SubscriptionResponse>(`/api/subscription/code/${subscriptionCode}`);
   }
 
-  async createSubscription(data: any): Promise<any> {
-    return this.request<any>('/api/subscription', {
+  async createSubscription(data: Partial<Subscription>): Promise<SubscriptionResponse> {
+    return this.request<SubscriptionResponse>('/api/subscription', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async createSubscriptionsBulk(data: any): Promise<any> {
-    return this.request<any>('/api/subscription/bulk', {
+  async createSubscriptionsBulk(data: Partial<Subscription>[]): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/api/subscription/bulk', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateSubscription(id: string | number, data: any): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}`, {
+  async updateSubscription(id: string | number, data: Partial<Subscription>): Promise<SubscriptionResponse> {
+    return this.request<SubscriptionResponse>(`/api/subscription/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async cancelSubscription(id: string | number, reason: string): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}/cancel`, {
+  async cancelSubscription(id: string | number, reason: string): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/subscription/${id}/cancel`, {
       method: 'PUT',
       body: JSON.stringify({ reason }),
     });
   }
 
-  async pauseSubscription(id: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}/pause`, {
+  async pauseSubscription(id: string | number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/subscription/${id}/pause`, {
       method: 'PUT',
     });
   }
 
-  async resumeSubscription(id: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}/resume`, {
+  async resumeSubscription(id: string | number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/subscription/${id}/resume`, {
       method: 'PUT',
     });
   }
 
-  async renewSubscription(id: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}/renew`, {
+  async renewSubscription(id: string | number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/subscription/${id}/renew`, {
       method: 'PUT',
     });
   }
 
-  async processSubscriptionBilling(id: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}/process-billing`, {
+  async processSubscriptionBilling(id: string | number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/subscription/${id}/process-billing`, {
       method: 'PUT',
     });
   }
 
-  async deleteSubscription(id: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/${id}`, {
+  async deleteSubscription(id: string | number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/subscription/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async getSubscriptionsByCustomer(customerId: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/customer/${customerId}`);
+  async getSubscriptionsByCustomer(customerId: string | number): Promise<SubscriptionListResponse> {
+    return this.request<SubscriptionListResponse>(`/api/subscription/customer/${customerId}`);
   }
 
-  async getSubscriptionsByService(serviceId: string | number): Promise<any> {
-    return this.request<any>(`/api/subscription/service/${serviceId}`);
+  async getSubscriptionsByService(serviceId: string | number): Promise<SubscriptionListResponse> {
+    return this.request<SubscriptionListResponse>(`/api/subscription/service/${serviceId}`);
   }
 
-  async getSubscriptionsByStatus(status: string): Promise<any> {
-    return this.request<any>(`/api/subscription/status/${status}`);
+  async getSubscriptionsByStatus(status: string): Promise<SubscriptionListResponse> {
+    return this.request<SubscriptionListResponse>(`/api/subscription/status/${status}`);
   }
 
-  async getOverdueSubscriptions(): Promise<any> {
-    return this.request<any>('/api/subscription/overdue');
+  async getOverdueSubscriptions(): Promise<SubscriptionListResponse> {
+    return this.request<SubscriptionListResponse>('/api/subscription/overdue');
   }
 
-  async getUpcomingBillingSubscriptions(params: { from: string; to: string }): Promise<any> {
-    const searchParams = new URLSearchParams(params as any).toString();
-    return this.request<any>(`/api/subscription/upcoming-billing?${searchParams}`);
+  async getUpcomingBillingSubscriptions(params: { from: string; to: string }): Promise<SubscriptionListResponse> {
+    const searchParams = new URLSearchParams(params as Record<string, string>).toString();
+    return this.request<SubscriptionListResponse>(`/api/subscription/upcoming-billing?${searchParams}`);
   }
 
-  async getActiveSubscriptions(): Promise<any> {
-    return this.request<any>('/api/subscription/active');
+  async getActiveSubscriptions(): Promise<SubscriptionListResponse> {
+    return this.request<SubscriptionListResponse>('/api/subscription/active');
   }
 
-  async getActiveSubscriptionCount(): Promise<any> {
-    return this.request<any>('/api/subscription/stats/count');
+  async getActiveSubscriptionCount(): Promise<{ success: boolean; data: number }> {
+    return this.request<{ success: boolean; data: number }>(`/api/subscription/stats/count`);
   }
 
-  async getTotalSubscriptionRevenue(): Promise<any> {
-    return this.request<any>('/api/subscription/stats/revenue');
+  async getTotalSubscriptionRevenue(): Promise<{ success: boolean; data: number }> {
+    return this.request<{ success: boolean; data: number }>(`/api/subscription/stats/revenue`);
   }
 
   // Invoice Management Methods
-  async getInvoiceById(id: string | number): Promise<any> {
-    return this.request<any>(`/api/invoice/${id}`);
+  async getInvoiceById(id: string | number): Promise<{ success: boolean; message?: string; data?: unknown }> {
+    return this.request<{ success: boolean; message?: string; data?: unknown }>(`/api/invoice/${id}`);
   }
 
-  async getInvoices(params: any = {}): Promise<any> {
+  async getInvoices(params: Record<string, unknown> = {}): Promise<{ success: boolean; message?: string; data?: unknown }> {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -1624,11 +1685,11 @@ class ApiService {
       }
     });
     const queryString = searchParams.toString();
-    return this.request<any>(`/api/invoice${queryString ? `?${queryString}` : ''}`);
+    return this.request<{ success: boolean; message?: string; data?: unknown }>(`/api/invoice${queryString ? `?${queryString}` : ''}`);
   }
 
-  async sendInvoiceEmail(id: string | number): Promise<any> {
-    return this.request<any>(`/api/invoice/${id}/send-email`, {
+  async sendInvoiceEmail(id: string | number): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>(`/api/invoice/${id}/send-email`, {
       method: 'POST',
     });
   }
@@ -1642,27 +1703,27 @@ class ApiService {
     return response.blob();
   }
 
-  async updateInvoiceStatus(id: string | number, status: string | number, reason?: string): Promise<any> {
-    const body: any = { status };
+  async updateInvoiceStatus(id: string | number, status: string | number, reason?: string): Promise<{ success: boolean; message: string }> {
+    const body: Record<string, unknown> & { reason?: string } = { status };
     if (reason) body.reason = reason;
-    return this.request<any>(`/api/invoice/${id}/status`, {
+    return this.request<{ success: boolean; message: string }>(`/api/invoice/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify(body),
     });
   }
 
-  async createInvoice(data: any): Promise<any> {
-    return this.request<any>('/api/invoice/create-invoice-firsttime', {
+  async createInvoice(data: Record<string, unknown>): Promise<{ success: boolean; message?: string; data?: unknown }> {
+    return this.request<{ success: boolean; message?: string; data?: unknown }>('/api/invoice/create-invoice-firsttime', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async getInvoiceTemplate(): Promise<{ success: boolean; data: any }> {
-    return this.request<{ success: boolean; data: any }>(`/api/invoice-template`);
+  async getInvoiceTemplate(): Promise<{ success: boolean; data: unknown }> {
+    return this.request<{ success: boolean; data: unknown }>(`/api/invoice-template`);
   }
 
-  async updateInvoiceTemplate(template: any): Promise<{ success: boolean }> {
+  async updateInvoiceTemplate(template: unknown): Promise<{ success: boolean }> {
     return this.request<{ success: boolean }>(`/api/invoice-template`, {
       method: 'PUT',
       body: JSON.stringify(template),

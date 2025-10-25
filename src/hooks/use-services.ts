@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 export const serviceKeys = {
   all: ['services'] as const,
   lists: () => [...serviceKeys.all, 'list'] as const,
-  list: (filters: any) => [...serviceKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) => [...serviceKeys.lists(), filters] as const,
   details: () => [...serviceKeys.all, 'detail'] as const,
   detail: (id: number) => [...serviceKeys.details(), id] as const,
   categories: () => [...serviceKeys.all, 'categories'] as const,
@@ -49,7 +49,7 @@ export const useServicesWithQuery = (
   }
 ) => {
   return useQuery({
-    queryKey: serviceKeys.list(params),
+    queryKey: serviceKeys.list(params as Record<string, unknown>),
     queryFn: () => apiService.getServicesWithQuery(params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: options?.enabled !== false,
@@ -80,9 +80,9 @@ export const useCreateService = () => {
         toast.error(response.message || 'Failed to create service');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to create service:', error);
-      toast.error(error?.message || 'Failed to create service');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to create service');
     },
   });
 };
@@ -104,9 +104,9 @@ export const useUpdateService = () => {
         toast.error(response.message || 'Failed to update service');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to update service:', error);
-      toast.error(error?.message || 'Failed to update service');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to update service');
     },
   });
 };
@@ -126,9 +126,9 @@ export const useDeleteService = () => {
         toast.error(response.message || 'Failed to delete service');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to delete service:', error);
-      toast.error(error?.message || 'Failed to delete service');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to delete service');
     },
   });
 };
@@ -195,9 +195,9 @@ export const useUpdateServiceStatus = () => {
         toast.error(response.message || 'Failed to update service status');
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Failed to update service status:', error);
-      toast.error(error?.message || 'Failed to update service status');
+      toast.error((error as Record<string, unknown>)?.message as string || 'Failed to update service status');
     },
   });
 };

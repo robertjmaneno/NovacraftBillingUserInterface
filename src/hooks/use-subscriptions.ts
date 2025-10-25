@@ -6,12 +6,12 @@ import { toast } from 'sonner';
 export const subscriptionKeys = {
   all: ['subscriptions'] as const,
   lists: () => [...subscriptionKeys.all, 'list'] as const,
-  list: (filters: any) => [...subscriptionKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) => [...subscriptionKeys.lists(), filters] as const,
   details: () => [...subscriptionKeys.all, 'detail'] as const,
   detail: (id: string | number) => [...subscriptionKeys.details(), id] as const,
 };
 
-export function useSubscriptions(filters: any = {}) {
+export function useSubscriptions(filters: Record<string, unknown> = {}) {
   return useQuery({
     queryKey: subscriptionKeys.list(filters),
     queryFn: () => apiService.getSubscriptions(filters),
@@ -21,7 +21,7 @@ export function useSubscriptions(filters: any = {}) {
 export function useCreateSubscription() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => apiService.createSubscription(data),
+    mutationFn: (data: Record<string, unknown>) => apiService.createSubscription(data),
     onSuccess: () => {
       toast.success('Subscription created successfully');
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });
@@ -35,7 +35,7 @@ export function useCreateSubscription() {
 export function useUpdateSubscription() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string | number; data: any }) => apiService.updateSubscription(id, data),
+    mutationFn: ({ id, data }: { id: string | number; data: Record<string, unknown> }) => apiService.updateSubscription(id, data),
     onSuccess: () => {
       toast.success('Subscription updated successfully');
       queryClient.invalidateQueries({ queryKey: subscriptionKeys.all });

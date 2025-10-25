@@ -63,8 +63,8 @@ export const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
-  const [viewUser, setViewUser] = useState<any>(null);
-  const [editUser, setEditUser] = useState<any>(null);
+  const [viewUser, setViewUser] = useState<unknown>(null);
+  const [editUser, setEditUser] = useState<unknown>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [suspendModal, setSuspendModal] = useState<{ userId: string; reason: string } | null>(null);
 
@@ -550,18 +550,18 @@ export const UserManagement: React.FC = () => {
             <div className="bg-white rounded-lg shadow-lg">
               <div className="flex items-center gap-4 p-6 border-b">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={viewUser.avatar} />
+                  <AvatarImage src={(viewUser as Record<string, unknown>).avatar as string} />
                   <AvatarFallback className="text-lg">
-                    {getUserInitials(viewUser.firstName, viewUser.lastName)}
+                    {getUserInitials((viewUser as Record<string, unknown>).firstName as string, (viewUser as Record<string, unknown>).lastName as string)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">
-                    {viewUser.firstName} {viewUser.middleName} {viewUser.lastName}
+                    {(viewUser as Record<string, unknown>).firstName as string} {(viewUser as Record<string, unknown>).middleName as string} {(viewUser as Record<string, unknown>).lastName as string}
                   </h3>
-                  <p className="text-gray-600">{viewUser.email}</p>
+                  <p className="text-gray-600">{(viewUser as Record<string, unknown>).email as string}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {(viewUser.roles || []).map((roleId: string) => {
+                    {((viewUser as Record<string, unknown>).roles as string[] || []).map((roleId: string) => {
                       const role = getRoleById(roleId);
                       return role ? (
                         <Badge key={roleId} variant="secondary">
@@ -575,29 +575,29 @@ export const UserManagement: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-b">
                 <div className="p-6 space-y-2 border-r md:border-r-0 md:border-b">
                   <h4 className="font-medium text-gray-900 mb-2">Personal Info</h4>
-                  <p><span className="text-gray-600">Date of Birth:</span> {viewUser.dateOfBirth || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Gender:</span> {viewUser.gender || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Phone:</span> {viewUser.phoneNumber || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Address:</span> {viewUser.address || 'Not provided'}</p>
+                  <p><span className="text-gray-600">Date of Birth:</span> {(viewUser as Record<string, unknown>).dateOfBirth as string || 'Not provided'}</p>
+                  <p><span className="text-gray-600">Gender:</span> {(viewUser as Record<string, unknown>).gender as string || 'Not provided'}</p>
+                  <p><span className="text-gray-600">Phone:</span> {(viewUser as Record<string, unknown>).phoneNumber as string || 'Not provided'}</p>
+                  <p><span className="text-gray-600">Address:</span> {(viewUser as Record<string, unknown>).address as string || 'Not provided'}</p>
                 </div>
                 <div className="p-6 space-y-2">
                   <h4 className="font-medium text-gray-900 mb-2">Professional Info</h4>
-                  <p><span className="text-gray-600">Job Title:</span> {viewUser.jobTitle || 'Not provided'}</p>
-                  <p><span className="text-gray-600">Company:</span> {viewUser.company || 'Not provided'}</p>
-                  <p><span className="text-gray-600">User Type:</span> {viewUser.userType}</p>
+                  <p><span className="text-gray-600">Job Title:</span> {(viewUser as Record<string, unknown>).jobTitle as string || 'Not provided'}</p>
+                  <p><span className="text-gray-600">Company:</span> {(viewUser as Record<string, unknown>).company as string || 'Not provided'}</p>
+                  <p><span className="text-gray-600">User Type:</span> {(viewUser as Record<string, unknown>).userType as string}</p>
                 </div>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-0">
                 <div className="space-y-2 border-r md:border-r-0 md:border-b">
                   <h4 className="font-medium text-gray-900 mb-2">Account Status</h4>
-                  <p><span className="text-gray-600">Status:</span> {getStatusBadge(viewUser.status)}</p>
-                  <p><span className="text-gray-600">Last Login:</span> {formatDate(viewUser.lastLogin)}</p>
-                  <p><span className="text-gray-600">Created:</span> {formatDate(viewUser.createdAt)}</p>
+                  <p><span className="text-gray-600">Status:</span> {getStatusBadge((viewUser as Record<string, unknown>).status as string | number)}</p>
+                  <p><span className="text-gray-600">Last Login:</span> {formatDate((viewUser as Record<string, unknown>).lastLogin as string)}</p>
+                  <p><span className="text-gray-600">Created:</span> {formatDate((viewUser as Record<string, unknown>).createdAt as string)}</p>
                 </div>
                 <div className="space-y-2">
                   <h4 className="font-medium text-gray-900 mb-2">Security</h4>
-                  <p><span className="text-gray-600">Email Confirmed:</span> {viewUser.emailConfirmed ? 'Yes' : 'No'}</p>
-                  <p><span className="text-gray-600">Two Factor Enabled:</span> {viewUser.twoFactorEnabled ? 'Yes' : 'No'}</p>
+                  <p><span className="text-gray-600">Email Confirmed:</span> {(viewUser as Record<string, unknown>).emailConfirmed ? 'Yes' : 'No'}</p>
+                  <p><span className="text-gray-600">Two Factor Enabled:</span> {(viewUser as Record<string, unknown>).twoFactorEnabled ? 'Yes' : 'No'}</p>
                 </div>
               </div>
             </div>
@@ -614,7 +614,7 @@ export const UserManagement: React.FC = () => {
           {editUser && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-                Edit functionality will be implemented. Currently showing user: {editUser.firstName} {editUser.lastName}
+                Edit functionality will be implemented. Currently showing user: {(editUser as Record<string, unknown>).firstName as string} {(editUser as Record<string, unknown>).lastName as string}
               </p>
               {/* TODO: Implement edit form with pre-populated data */}
             </div>

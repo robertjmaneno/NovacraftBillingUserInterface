@@ -148,12 +148,16 @@ export const MFA: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('MFA verification error:', error);
+      
+      const errorMessage = (error && typeof (error as { message?: unknown }).message === 'string')
+        ? (error as { message: string }).message
+        : "Invalid verification code. Please try again.";
       
       toast({
         title: "Verification failed",
-        description: error.message || "Invalid verification code. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -181,12 +185,16 @@ export const MFA: React.FC = () => {
         variant: "destructive",
       });
       navigate('/login');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Send MFA code error:', error);
+      
+      const errorMessage = (error && typeof (error as { message?: unknown }).message === 'string')
+        ? (error as { message: string }).message
+        : "Failed to send verification code. Please try again.";
       
       toast({
         title: "Failed to send code",
-        description: error.message || "Failed to send verification code. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
