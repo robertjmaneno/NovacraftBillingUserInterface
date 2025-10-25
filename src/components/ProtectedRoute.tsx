@@ -13,7 +13,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   console.log('ProtectedRoute - Auth state:', {
     isAuthenticated: isAuthenticated,
     isLoading: isLoading,
-    user: user,
+    user: user ? user.id : 'No user',
+    hasToken: !!localStorage.getItem('authToken'),
     pathname: location.pathname
   });
 

@@ -16,7 +16,6 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PermissionGuard } from './PermissionGuard';
 import { PERMISSIONS, usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -25,49 +24,49 @@ const navigation = [
     name: 'Dashboard', 
     href: '/', 
     icon: BarChart3,
-    permissions: [PERMISSIONS.DASHBOARD_VIEW] // Requires dashboard view permission
+    permissions: ['View Dashboard'] // Proper new format from backend seeder
   },
   { 
     name: 'Invoices', 
     href: '/invoices', 
     icon: FileText,
-    permissions: [PERMISSIONS.INVOICES_READ] // Requires invoice read permission
+    permissions: ['View Invoices'] // Proper new format from backend seeder
   },
   { 
     name: 'Customers', 
     href: '/customers', 
     icon: Users,
-    permissions: [PERMISSIONS.CUSTOMERS_READ] // Requires customer read permission
+    permissions: ['View Customers'] // Proper new format from backend seeder
   },
   { 
     name: 'Services', 
     href: '/services', 
     icon: Package,
-    permissions: [PERMISSIONS.PRODUCTS_READ] // Requires product read permission
+    permissions: ['View Services', 'View Products'] // Proper new format from backend seeder
   },
   { 
     name: 'Subscriptions', 
     href: '/subscriptions', 
     icon: Calendar,
-    permissions: [PERMISSIONS.SUBSCRIPTIONS_READ] // Requires subscription read permission
+    permissions: ['View Subscriptions'] // Proper new format from backend seeder
   },
   { 
     name: 'Payments', 
     href: '/payments', 
     icon: CreditCard,
-    permissions: [PERMISSIONS.PAYMENTS_READ] // Requires payment read permission
+    permissions: ['View Payments'] // Proper new format from backend seeder
   },
   { 
     name: 'Reports', 
     href: '/reports', 
     icon: Receipt,
-    permissions: [PERMISSIONS.REPORTS_VIEW] // Requires report view permission
+    permissions: ['View Reports'] // Proper new format from backend seeder
   },
   { 
     name: 'Users', 
     href: '/users', 
     icon: UserCog,
-    permissions: [PERMISSIONS.USERS_READ] // Requires user read permission
+    permissions: ['View Users', 'Manage Users'] // Proper new format from backend seeder
   },
   { 
     name: 'Profile', 
@@ -79,27 +78,36 @@ const navigation = [
     name: 'Invoice Template', 
     href: '/invoices/template', 
     icon: Palette,
-    permissions: [PERMISSIONS.INVOICES_READ] // Requires invoice read permission
+    permissions: ['View Invoice Templates'] // Proper new format from backend seeder
   },
   { 
     name: 'Settings', 
     href: '/settings', 
     icon: Settings,
-    permissions: [PERMISSIONS.SETTINGS_READ] // Requires settings read permission
+    permissions: ['View Settings'] // Proper new format from backend seeder
   },
 ];
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { userPermissions } = usePermissions();
-  const { logout } = useAuth();
-
-  // Debug: Log user permissions
-  console.log('User permissions in sidebar:', userPermissions);
-  console.log('Available permissions:', Object.values(PERMISSIONS));
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
     logout();
+  };
+
+  // Helper function to check if user should see menu item based on permissions only
+  const shouldShowMenuItem = (item: any) => {
+    // Profile is always visible (no permissions required)
+    if (item.permissions.length === 0) {
+      return true;
+    }
+    
+    // Check if user has ANY of the required permissions
+    const hasPermission = item.permissions.some((permission: string) => userPermissions.includes(permission));
+    
+    return hasPermission;
   };
 
   return (
@@ -115,25 +123,20 @@ export const Sidebar: React.FC = () => {
         </div>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
-        {navigation.map((item) => (
-          <PermissionGuard 
+        {navigation.filter(shouldShowMenuItem).map((item) => (
+          <Link
             key={item.name}
-            permissions={item.permissions}
-            requireAll={false}
+            to={item.href}
+            className={cn(
+              'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+              location.pathname === item.href
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            )}
           >
-            <Link
-              to={item.href}
-              className={cn(
-                'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                location.pathname === item.href
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              )}
-            >
-              <item.icon className="w-5 h-5 mr-3" />
-              {item.name}
-            </Link>
-          </PermissionGuard>
+            <item.icon className="w-5 h-5 mr-3" />
+            {item.name}
+          </Link>
         ))}
         
         {/* Spacer for logout positioning */}

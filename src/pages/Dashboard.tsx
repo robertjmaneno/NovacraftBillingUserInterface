@@ -121,16 +121,31 @@ export const Dashboard: React.FC = () => {
     queryKey: ['report-outstanding-amount'],
     queryFn: () => apiService.getReportOutstandingAmount(),
     staleTime: 5 * 60 * 1000,
+    retry: false, // Don't retry 403 errors
+    onError: (error) => {
+      if (error instanceof Error && error.message.includes('403')) {
+        console.log('User does not have permissions for reports data');
+      }
+    }
   });
 
   const isLoading = paymentStatsLoading || subscriptionRevenueLoading || customersLoading || invoicesLoading || outstandingAmountLoading;
-  const error = paymentStatsError || subscriptionRevenueError || customersError || invoicesError || outstandingAmountError;
+  
+  // Only treat it as a critical error if it's not a permission issue
+  const isCriticalError = (error: any) => {
+    return error && !(error instanceof Error && error.message.includes('403'));
+  };
+  
+  const criticalError = isCriticalError(paymentStatsError) || 
+                       isCriticalError(subscriptionRevenueError) || 
+                       isCriticalError(customersError) || 
+                       isCriticalError(invoicesError);
 
   if (isLoading) {
     return <DashboardShimmer />;
   }
 
-  if (error) {
+  if (criticalError) {
     return (
       <div className="p-8 text-center text-red-500">
         Unable to load dashboard data. Please try again later.<br />

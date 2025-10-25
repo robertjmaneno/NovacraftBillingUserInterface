@@ -68,18 +68,40 @@ export const UserManagement: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [suspendModal, setSuspendModal] = useState<{ userId: string; reason: string } | null>(null);
 
-  const { hasPermission, getUserPermissionNames } = usePermissions();
+  const { hasPermission, hasAnyPermission, getUserPermissionNames } = usePermissions();
 
-  // Check if user has permission to view users
-  const canViewUsers = hasPermission(PERMISSIONS.USERS_READ);
-  const canViewRoles = hasPermission(PERMISSIONS.ROLES_READ);
+  // Check if user has permission to view users (multiple permission variants)
+  const canViewUsers = hasAnyPermission([
+    PERMISSIONS.USERS_READ, 
+    PERMISSIONS.USERS_MANAGE,
+    'View Users',
+    'Manage Users',
+    'Users.Read'
+  ]);
   
-  // Check if user can manage users (has update permission or specific management permissions)
-  const canManageUsers = hasPermission(PERMISSIONS.USERS_UPDATE) || 
-                        hasPermission(PERMISSIONS.USERS_ACTIVATE) || 
-                        hasPermission(PERMISSIONS.USERS_SUSPEND) || 
-                        hasPermission(PERMISSIONS.USERS_RESETPASSWORD) || 
-                        hasPermission(PERMISSIONS.USERS_MANAGEMFA);
+  const canViewRoles = hasAnyPermission([
+    PERMISSIONS.ROLES_READ, 
+    PERMISSIONS.ROLES_MANAGE,
+    'View Roles',
+    'Manage Roles',
+    'Roles.Read'
+  ]);
+  
+  // Check if user can manage users (multiple permission variants)
+  const canManageUsers = hasAnyPermission([
+    PERMISSIONS.USERS_UPDATE,
+    PERMISSIONS.USERS_ACTIVATE,
+    PERMISSIONS.USERS_SUSPEND,
+    PERMISSIONS.USERS_RESETPASSWORD,
+    PERMISSIONS.USERS_MANAGEMFA,
+    PERMISSIONS.USERS_MANAGE,
+    'Manage Users',
+    'Update User',
+    'Activate User',
+    'Suspend User',
+    'Reset User Password',
+    'Manage User MFA'
+  ]);
   
 
   
@@ -239,7 +261,12 @@ export const UserManagement: React.FC = () => {
           <CardContent className="p-6">
             <div className="text-center text-red-600">
               <p>You don't have permission to view users.</p>
-              <p className="text-sm text-gray-500 mt-1">Required permission: Users.Read</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Required permissions: "View Users", "Manage Users", "Users.Read", or "Users.Manage"
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                Your current permissions: {getUserPermissionNames().join(', ') || 'None'}
+              </p>
             </div>
           </CardContent>
         </Card>
