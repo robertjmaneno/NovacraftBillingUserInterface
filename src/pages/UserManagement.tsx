@@ -364,7 +364,8 @@ export const UserManagement: React.FC = () => {
             <TableShimmer rows={8} columns={8} />
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Avatar</TableHead>
@@ -507,6 +508,7 @@ export const UserManagement: React.FC = () => {
                 )}
                 </TableBody>
               </Table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (

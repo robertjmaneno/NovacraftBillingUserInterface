@@ -212,7 +212,7 @@ export const Dashboard: React.FC = () => {
   const displayName = getUserDisplayName();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8">      
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>

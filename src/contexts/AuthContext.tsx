@@ -65,7 +65,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const userData = JSON.parse(storedUser);
           
           // Extract roles and permissions from JWT token
-          const { getUserRoles, getUserPermissions } = await import('../lib/jwt-utils');
+          const { getUserRoles, getUserPermissions, logTokenDetails } = await import('../lib/jwt-utils');
+          
+          // Log detailed token information for debugging
+          logTokenDetails(storedToken);
+          
           const roles = getUserRoles(storedToken);
           const permissions = getUserPermissions(storedToken);
           

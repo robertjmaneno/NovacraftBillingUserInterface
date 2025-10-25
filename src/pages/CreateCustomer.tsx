@@ -1641,13 +1641,13 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
       {/* Stepper */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
             {steps.map((step, index) => {
               const Icon = step.icon;
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
               return (
-                <div key={step.id} className="flex items-center">
+                <div key={step.id} className="flex items-center md:flex-col md:items-center">
                   <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
                     isActive
                       ? 'border-blue-500 bg-blue-500 text-white'
@@ -1661,7 +1661,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
                       <Icon className="w-5 h-5" />
                     )}
                   </div>
-                  <div className="ml-3">
+                  <div className="ml-3 md:ml-0 md:mt-2 md:text-center">
                     <div className={`text-sm font-medium ${
                       isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
                     }`}>
@@ -1669,7 +1669,12 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-16 h-0.5 mx-4 ${
+                    <div className={`hidden md:block w-16 h-0.5 mx-4 ${
+                      isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                    }`} />
+                  )}
+                  {index < steps.length - 1 && (
+                    <div className={`md:hidden w-0.5 h-8 ml-5 ${
                       isCompleted ? 'bg-green-500' : 'bg-gray-300'
                     }`} />
                   )}

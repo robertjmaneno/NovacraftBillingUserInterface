@@ -153,7 +153,8 @@ export const RoleManagement: React.FC = () => {
               <div className="text-red-500">Error loading roles: {error.message}</div>
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Role Name</TableHead>
@@ -224,6 +225,7 @@ export const RoleManagement: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

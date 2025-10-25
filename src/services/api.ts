@@ -790,6 +790,22 @@ class ApiService {
         console.error('Response status:', response.status);
         console.error('Response headers:', Object.fromEntries(response.headers.entries()));
 
+        // Special handling for 403 Forbidden errors
+        if (response.status === 403) {
+          console.error('🚫 PERMISSION DENIED - This suggests a backend authorization issue');
+          console.error('Request URL:', url);
+          console.error('Request method:', requestConfig.method);
+          console.error('Auth header sent:', requestConfig.headers && 'Authorization' in requestConfig.headers ? 'YES' : 'NO');
+          
+          // Try to extract more info from error response
+          if (errorData.message) {
+            console.error('Backend error message:', errorData.message);
+          }
+          if (errorData.details) {
+            console.error('Backend error details:', errorData.details);
+          }
+        }
+
         const Err = this.ApiError;
 
         // Extract a useful message from the payload

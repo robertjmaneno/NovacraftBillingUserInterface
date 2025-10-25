@@ -94,9 +94,9 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left side - Login Logo */}
-      <div className="flex-1 bg-blue-600 flex items-start justify-center p-8 pt-8 relative overflow-hidden">
+      <div className="flex-1 bg-blue-600 flex items-start justify-center p-8 pt-8 relative overflow-hidden md:order-1 order-2">
         <div className="text-center text-white z-10 -ml-8 mt-2">
           <img 
             src="/Images/billing-software.png" 
@@ -112,7 +112,7 @@ export const Login: React.FC = () => {
       </div>
 
       {/* Right side - Login form */}
-      <div className="flex-1 bg-gray-50 flex items-center justify-center p-8">
+      <div className="flex-1 bg-gray-50 flex items-center justify-center p-8 md:order-2 order-1">
         <Card className="w-full max-w-md border">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">

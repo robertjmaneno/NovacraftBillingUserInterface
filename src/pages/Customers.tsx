@@ -146,58 +146,59 @@ export const Customers: React.FC = () => {
           )}
           
           {!isLoading && !error && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-10 h-10 bg-blue-100">
-                          <AvatarFallback className="text-blue-600 font-semibold text-sm">
-                            {getInitials(customer.displayName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-semibold text-gray-900">
-                            {customer.customerType === 1 ? customer.organizationName : customer.displayName}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.map((customer) => (
+                    <TableRow key={customer.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-10 h-10 bg-blue-100">
+                            <AvatarFallback className="text-blue-600 font-semibold text-sm">
+                              {getInitials(customer.displayName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-semibold text-gray-900">
+                              {customer.customerType === 1 ? customer.organizationName : customer.displayName}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Mail className="w-3 h-3 mr-1" />
-                          <span className="truncate max-w-48">{customer.email}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Phone className="w-3 h-3 mr-1" />
-                          <span>{customer.phoneNumber}</span>
-                        </div>
-                        {customer.contactPerson && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <User className="w-3 h-3 mr-1" />
-                            <span>{customer.contactPerson}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Mail className="w-3 h-3 mr-1" />
+                            <span className="truncate max-w-48">{customer.email}</span>
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getCustomerTypeColor(customer.customerType)}>
-                        {getCustomerTypeDisplay(customer.customerType)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Phone className="w-3 h-3 mr-1" />
+                            <span>{customer.phoneNumber}</span>
+                          </div>
+                          {customer.contactPerson && (
+                            <div className="flex items-center text-sm text-gray-500">
+                              <User className="w-3 h-3 mr-1" />
+                              <span>{customer.contactPerson}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getCustomerTypeColor(customer.customerType)}>
+                          {getCustomerTypeDisplay(customer.customerType)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                       <Badge className={getCustomerStatusColor(customer.status)}>
                         {getCustomerStatusDisplay(customer.status)}
                       </Badge>
@@ -242,6 +243,7 @@ export const Customers: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
           {/* Pagination Controls */}
           <div className="flex items-center justify-between mt-4">

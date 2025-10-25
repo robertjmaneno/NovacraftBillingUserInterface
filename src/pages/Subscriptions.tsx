@@ -357,7 +357,8 @@ export const Subscriptions: React.FC = () => {
               <CardTitle>Subscriptions ({totalCount})</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
+              <div className="overflow-x-auto">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Subscription Code</TableHead>
@@ -417,6 +418,7 @@ export const Subscriptions: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
               
               {/* Pagination Controls */}
               <div className="flex items-center justify-between mt-4">

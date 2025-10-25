@@ -268,7 +268,8 @@ export const Services: React.FC = () => {
           {isLoading ? (
             <TableShimmer rows={8} columns={8} />
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Service</TableHead>
@@ -421,6 +422,7 @@ export const Services: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -231,19 +231,20 @@ export const Payments: React.FC = () => {
           <CardTitle>Recent Payments ({totalFilteredCount})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Payment ID</TableHead>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[120px]">Payment ID</TableHead>
+                  <TableHead className="min-w-[100px]">Invoice</TableHead>
+                  <TableHead className="min-w-[150px]">Customer</TableHead>
+                  <TableHead className="min-w-[100px]">Amount</TableHead>
+                  <TableHead className="min-w-[100px]">Method</TableHead>
+                  <TableHead className="min-w-[100px]">Status</TableHead>
+                  <TableHead className="min-w-[120px]">Date</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {paginatedPayments.map((payment) => (
                 <TableRow key={payment.paymentId} className="hover:bg-gray-50">
@@ -278,6 +279,7 @@ export const Payments: React.FC = () => {
               ))}
                             </TableBody>
               </Table>
+            </div>
               
               {/* Pagination Controls */}
               <div className="flex items-center justify-between mt-4">

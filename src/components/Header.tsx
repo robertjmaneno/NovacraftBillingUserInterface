@@ -14,15 +14,18 @@ import {
   Bell,
   User,
   LogOut,
-  Settings
+  Settings,
+  Menu
 } from 'lucide-react';
 import { ConnectionStatus } from './ConnectionStatus';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { getUserInitials } from '@/lib/utils';
 
 export const Header: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { toggleSidebar, isMobile } = useSidebar();
 
   const getPageTitle = (pathname: string) => {
     const routes: { [key: string]: string } = {
@@ -45,15 +48,26 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          {getPageTitle(location.pathname)}
-        </h1>
+        <div className="flex items-center gap-4">
+          {/* Hamburger Menu - Shows on mobile and optionally on desktop */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="p-2 hover:bg-gray-100"
+            aria-label="Toggle sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+            {getPageTitle(location.pathname)}
+          </h1>
+        </div>
 
-        <div className="flex items-center space-x-4">
-      
-          {/* Notifications */}
+        <div className="flex items-center space-x-4">          {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="relative">
