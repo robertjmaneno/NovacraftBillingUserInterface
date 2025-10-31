@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice Template PDF</title>
+    <style>
+        /* Dynamic CSS Variables - Replace with template values */
+        :root {
+            --primary-color: {{template.design.primaryColor}};
+            --secondary-color: {{template.design.secondaryColor}};
+            --accent-color: {{template.design.accentColor}};
+            --font-family: {{template.design.fontFamily}};
+            --heading-size: {{template.design.fontSize.heading}};
+            --subheading-size: {{template.design.fontSize.subheading}};
+            --body-size: {{template.design.fontSize.body}};
+            --small-size: {{template.design.fontSize.small}};
+            --border-style: {{template.design.borderStyle}};
+            --border-color: {{template.design.borderColor}};
+            --border-radius: {{template.design.borderRadius}};
+            --margin-top: {{template.layout.marginTop}};
+            --margin-bottom: {{template.layout.marginBottom}};
+            --margin-left: {{template.layout.marginLeft}};
+            --margin-right: {{template.layout.marginRight}};
+        }
+
+        body {
+            font-family: var(--font-family);
+            font-size: var(--body-size);
+            margin: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left);
+            color: #333;
+        }
+
+        .invoice-container {
+            max-width: none;
+            background: white;
+            position: relative;
+        }
+
+        /* Watermark */
+        {{#if template.layout.showWatermark}}
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            font-weight: bold;
+            color: rgba(0,0,0,{{template.layout.watermarkOpacity}});
+            z-index: 1;
+            pointer-events: none;
+            user-select: none;
+        }
+        {{/if}}
+
+        /* Header Layout - Three Column */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .logo-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .logo-container img {
+            {{#if template.design.logoSize 'small'}}
+            height: 3rem;
+            {{else if template.design.logoSize 'large'}}
+            height: 5rem;
+            {{else}}
+            height: 4rem;
+            {{/if}}
+            width: auto;
+        }
+
+        .invoice-title {
+            flex: 1;
+            text-align: right;
+        }
+
+        .company-name {
+            font-size: var(--heading-size);
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .company-details {
+            color: #666;
+            font-size: var(--small-size);
+            line-height: 1.4;
+        }
+
+        .invoice-title-text {
+            font-size: var(--heading-size);
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .invoice-details {
+            font-size: var(--small-size);
+            color: #666;
+        }
+
+        /* Bill To Section */
+        .bill-to {
+            margin-bottom: 2rem;
+        }
+
+        .bill-to-title {
+            font-size: var(--subheading-size);
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .client-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Table Styles */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+
+        .items-table th {
+            background-color: var(--secondary-color);
+            color: #333;
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+        }
+
+        .items-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .items-table th:last-child,
+        .items-table td:last-child {
+            text-align: right;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: var(--small-size);
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        {{#if template.layout.showWatermark}}
+        <div class="watermark">{{template.layout.watermarkText}}</div>
+        {{/if}}
+
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <div class="company-name">{{template.companyInfo.name}}</div>
+                <div class="company-details">
+                    <div>{{template.companyInfo.address}}</div>
+                    <div>{{template.companyInfo.city}}, {{template.companyInfo.state}} {{template.companyInfo.postalCode}}</div>
+                    <div>{{template.companyInfo.country}}</div>
+                    <div>{{template.companyInfo.phone}}</div>
+                    <div>{{template.companyInfo.email}}</div>
+                    <div>{{template.companyInfo.website}}</div>
+                </div>
+            </div>
+
+            {{#if template.design.logoUrl}}
+            <div class="logo-container">
+                <img src="{{template.design.logoUrl}}" alt="Company Logo" />
+            </div>
+            {{/if}}
+
+            <div class="invoice-title">
+                <div class="invoice-title-text">INVOICE</div>
+                <div class="invoice-details">
+                    <div><strong>Invoice #:</strong> {{invoice.invoiceNumber}}</div>
+                    <div><strong>Date:</strong> {{invoice.date}}</div>
+                    <div><strong>Due Date:</strong> {{invoice.dueDate}}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bill To -->
+        <div class="bill-to">
+            <div class="bill-to-title">Bill To:</div>
+            <div class="client-name">{{invoice.client.name}}</div>
+            <div>{{invoice.client.address}}</div>
+            <div>{{invoice.client.city}}</div>
+            <div>{{invoice.client.email}}</div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each invoice.items}}
+                <tr>
+                    <td>{{this.description}}</td>
+                    <td>{{this.quantity}}</td>
+                    <td>${{this.rate}}</td>
+                    <td>${{this.amount}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div>Thank you for your business!</div>
+        </div>
+    </div>
+</body>
+</html></content>
+<parameter name="filePath">c:\Users\rober\Documents\personal_projects\NovacraftBillingUserInterface\template-pdf.html

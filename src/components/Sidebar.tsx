@@ -88,7 +88,7 @@ const navigation: NavigationItem[] = [
     name: 'Invoice Template', 
     href: '/invoices/template', 
     icon: Palette,
-    permissions: ['InvoiceTemplates.Read'] // From JWT token
+    permissions: ['Settings.Read'] // From JWT token
   },
   { 
     name: 'Settings', 

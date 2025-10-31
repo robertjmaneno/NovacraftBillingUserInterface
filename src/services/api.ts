@@ -1,4 +1,9 @@
 import { config } from '../config/environment';
+import { 
+  InvoiceTemplateDto, 
+  InvoiceTemplateResponse, 
+  LogoUploadResponse 
+} from '../types/invoice-template';
 
 // Force all API calls to use the full backend URL, never a relative path
 const API_BASE_URL = config.apiUrl;
@@ -747,9 +752,17 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    // Prepare default headers, but don't set Content-Type for FormData
+    const defaultHeaders: Record<string, string> = {};
+    
+    // Only set Content-Type for non-FormData requests
+    if (!(options.body instanceof FormData)) {
+      defaultHeaders['Content-Type'] = 'application/json';
+    }
+    
     const requestConfig: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
+        ...defaultHeaders,
         ...options.headers,
       },
       ...options,
@@ -1735,16 +1748,47 @@ class ApiService {
     });
   }
 
-  async getInvoiceTemplate(): Promise<{ success: boolean; data: unknown }> {
-    return this.request<{ success: boolean; data: unknown }>(`/api/invoice-template`);
+  async getInvoiceTemplate(): Promise<InvoiceTemplateResponse> {
+    return this.request<InvoiceTemplateResponse>(`/api/invoice-template`);
   }
 
-  async updateInvoiceTemplate(template: unknown): Promise<{ success: boolean }> {
-    return this.request<{ success: boolean }>(`/api/invoice-template`, {
+  async updateInvoiceTemplate(template: Partial<InvoiceTemplateDto>): Promise<{ success: boolean; message?: string }> {
+    return this.request<{ success: boolean; message?: string }>(`/api/invoice-template`, {
       method: 'PUT',
       body: JSON.stringify(template),
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  async uploadInvoiceTemplateLogo(file: File): Promise<LogoUploadResponse> {
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    return this.request<LogoUploadResponse>(`/api/invoice-template/upload-logo`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // Don't set Content-Type header for FormData, let browser set it automatically
+        // This ensures proper multipart/form-data boundary is set
+      },
+    });
+  }
+
+  getInvoiceTemplatePreviewUrl(sampleData: boolean = true): string {
+    return `${this.baseUrl}/api/invoice-template/preview?sampleData=${sampleData}`;
+  }
+
+  async downloadInvoiceTemplatePdf(): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/api/invoice-template/preview-pdf`, {
+      method: 'GET',
+      headers: { ...this.getAuthHeaders() },
+    });
+    if (!response.ok) throw new Error('Failed to download template PDF');
+    return response.blob();
+  }
+
+  getInvoiceTemplateLogoUrl(filename: string): string {
+    return `${this.baseUrl}/api/invoice-template/logo/${filename}`;
   }
 
   // Payment Management Methods

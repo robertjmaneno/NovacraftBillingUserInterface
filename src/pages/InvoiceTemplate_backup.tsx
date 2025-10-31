@@ -56,6 +56,7 @@ const getDefaultTemplate = (): InvoiceTemplateDto => ({
       body: '14px',
       small: '12px'
     },
+    logoPosition: 'left',
     logoSize: 'medium',
     borderStyle: 'solid',
     borderColor: '#E5E7EB',
@@ -243,28 +244,9 @@ export const InvoiceTemplate: React.FC = () => {
     }
   };
 
-  const handleDownload = async () => {
-    try {
-      setSaving(true);
-      const blob = await apiService.downloadInvoiceTemplatePdf();
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'invoice-template-preview.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('PDF downloaded successfully');
-    } catch (error) {
-      console.error('PDF download failed:', error);
-      toast.error('Failed to download PDF');
-    } finally {
-      setSaving(false);
-    }
+  const handleDownload = () => {
+    const previewUrl = apiService.getInvoiceTemplatePreviewUrl(true);
+    window.open(previewUrl, '_blank');
   };
 
   const handlePrint = () => {
@@ -349,7 +331,7 @@ export const InvoiceTemplate: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Invoice Template</h1>
+                      <h1 className="text-2xl font-semibold text-gray-900">Invoice Template</h1>
           <p className="text-gray-600 mt-1">Customize your invoice design and branding</p>
         </div>
         <div className="flex space-x-2">
@@ -362,17 +344,7 @@ export const InvoiceTemplate: React.FC = () => {
             Download PDF
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <span className="flex items-center">
-                <span className="animate-spin mr-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full"></span>
-                Saving...
-              </span>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Template
-              </>
-            )}
+            {saving ? <span className="flex items-center"><span className="animate-spin mr-2 w-4 h-4 border-2 border-t-transparent border-white rounded-full"></span>Saving...</span> : <><Save className="w-4 h-4 mr-2" />Save Template</>}
           </Button>
         </div>
       </div>
@@ -520,6 +492,23 @@ export const InvoiceTemplate: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="logoPosition">Logo Position</Label>
+                  <Select 
+                    value={template.design.logoPosition} 
+                    onValueChange={(value: 'left' | 'center' | 'right') => updateDesign({ logoPosition: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="center">Center</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="logoSize">Logo Size</Label>
                   <Select 
                     value={template.design.logoSize} 
@@ -534,54 +523,6 @@ export const InvoiceTemplate: React.FC = () => {
                       <SelectItem value="large">Large</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Layout Configuration */}
-            <Card className="border">
-              <CardHeader>
-                <CardTitle>Layout Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="showWatermark"
-                      checked={template.layout.showWatermark}
-                      onCheckedChange={(checked) => updateLayout({ showWatermark: checked })}
-                    />
-                    <Label htmlFor="showWatermark">Show Watermark</Label>
-                  </div>
-
-                  {template.layout.showWatermark && (
-                    <div className="space-y-3 pl-6 border-l-2 border-gray-200">
-                      <div className="space-y-2">
-                        <Label htmlFor="watermarkText">Watermark Text</Label>
-                        <Input
-                          id="watermarkText"
-                          value={template.layout.watermarkText}
-                          onChange={(e) => updateLayout({ watermarkText: e.target.value })}
-                          placeholder="PAID, DRAFT, CONFIDENTIAL, etc."
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="watermarkOpacity">
-                          Watermark Opacity ({Math.round(template.layout.watermarkOpacity * 100)}%)
-                        </Label>
-                        <Input
-                          id="watermarkOpacity"
-                          type="range"
-                          min="0.05"
-                          max="0.5"
-                          step="0.05"
-                          value={template.layout.watermarkOpacity}
-                          onChange={(e) => updateLayout({ watermarkOpacity: parseFloat(e.target.value) })}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -787,56 +728,18 @@ export const InvoiceTemplate: React.FC = () => {
         )}
 
         {/* Invoice Preview */}
+                {/* Invoice Preview */}
         <div className={`${activeTab === 'design' ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           <Card className="min-h-[800px] border">
             <CardContent className="p-8">
               <div 
-                className="max-w-4xl mx-auto bg-white relative"
+                className="max-w-4xl mx-auto bg-white"
                 style={{ fontFamily: template.design.fontFamily }}
               >
-                {/* Watermark Overlay */}
-                {template.layout.showWatermark && (
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-                    style={{ 
-                      opacity: template.layout.watermarkOpacity,
-                      transform: 'rotate(-45deg)'
-                    }}
-                  >
-                    <div 
-                      className="text-8xl font-bold text-gray-500 select-none"
-                      style={{ 
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
-                        letterSpacing: '0.2em'
-                      }}
-                    >
-                      {template.layout.watermarkText}
-                    </div>
-                  </div>
-                )}
-
                 {/* Header */}
                 <div className="flex justify-between items-start mb-8">
-                  <div className="flex-1">
-                    <h1 
-                      className="text-3xl font-semibold mb-2"
-                      style={{ color: template.design.primaryColor }}
-                    >
-                      {template.companyInfo.name}
-                    </h1>
-                    <div className="text-gray-600">
-                      <p>{template.companyInfo.address}</p>
-                      <p>{template.companyInfo.city}, {template.companyInfo.state} {template.companyInfo.postalCode}</p>
-                      <p>{template.companyInfo.country}</p>
-                      <p>{template.companyInfo.phone}</p>
-                      <p>{template.companyInfo.email}</p>
-                      <p>{template.companyInfo.website}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Centered Logo */}
-                  {template.design.logoUrl && (
-                    <div className="flex-1 flex justify-center">
+                  <div className="flex items-start space-x-4">
+                    {template.design.logoUrl && (
                       <img 
                         src={template.design.logoUrl} 
                         alt="Company Logo" 
@@ -845,10 +748,25 @@ export const InvoiceTemplate: React.FC = () => {
                           template.design.logoSize === 'large' ? 'h-20' : 'h-16'
                         }`} 
                       />
+                    )}
+                    <div>
+                      <h1 
+                        className="text-3xl font-semibold mb-2"
+                        style={{ color: template.design.primaryColor }}
+                      >
+                        {template.companyInfo.name}
+                      </h1>
+                      <div className="text-gray-600">
+                        <p>{template.companyInfo.address}</p>
+                        <p>{template.companyInfo.city}, {template.companyInfo.state} {template.companyInfo.postalCode}</p>
+                        <p>{template.companyInfo.country}</p>
+                        <p>{template.companyInfo.phone}</p>
+                        <p>{template.companyInfo.email}</p>
+                        <p>{template.companyInfo.website}</p>
+                      </div>
                     </div>
-                  )}
-                  
-                  <div className="flex-1 text-right">
+                  </div>
+                  <div className="text-right">
                     <h2 
                       className="text-3xl font-bold mb-4"
                       style={{ color: template.design.primaryColor }}
@@ -911,6 +829,187 @@ export const InvoiceTemplate: React.FC = () => {
                           {template.table.showQuantity && <td className="text-center p-3 border-b">{item.quantity}</td>}
                           {template.table.showRate && <td className="text-right p-3 border-b">{template.localization.currencySymbol}{item.rate.toLocaleString()}</td>}
                           {template.table.showAmount && <td className="text-right p-3 border-b">{template.localization.currencySymbol}{item.amount.toLocaleString()}</td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Totals */}
+                <div className="flex justify-end mb-8">
+                  <div className="w-80">
+                    <div className="flex justify-between py-2">
+                      <span>Subtotal:</span>
+                      <span>{template.localization.currencySymbol}{mockInvoiceData.subtotal.toLocaleString()}</span>
+                    </div>
+                    {template.table.showTax && (
+                      <div className="flex justify-between py-2">
+                        <span>{template.tax.taxLabel} ({template.tax.defaultTaxRate}%):</span>
+                        <span>{template.localization.currencySymbol}{mockInvoiceData.tax.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div 
+                      className="flex justify-between py-2 text-lg font-bold border-t-2"
+                      style={{ borderTopColor: template.design.primaryColor }}
+                    >
+                      <span>Total:</span>
+                      <span style={{ color: template.design.primaryColor }}>
+                        {template.localization.currencySymbol}{mockInvoiceData.total.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Terms */}
+                {template.content.showPaymentTerms && (
+                  <div className="mb-6">
+                    <h4 
+                      className="font-semibold mb-2"
+                      style={{ color: template.design.primaryColor }}
+                    >
+                      Payment Terms:
+                    </h4>
+                    <p className="text-gray-600">{template.content.defaultPaymentTerms}</p>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {template.content.showNotes && (
+                  <div className="mb-6">
+                    <h4 
+                      className="font-semibold mb-2"
+                      style={{ color: template.design.primaryColor }}
+                    >
+                      Notes:
+                    </h4>
+                    <p className="text-gray-600">{template.content.defaultNotes}</p>
+                  </div>
+                )}
+
+                {/* Terms & Conditions */}
+                <div className="mb-6">
+                  <h4 
+                    className="font-semibold mb-2"
+                    style={{ color: template.design.primaryColor }}
+                  >
+                    Terms & Conditions:
+                  </h4>
+                  <p className="text-sm text-gray-600">{template.footer.termsAndConditions}</p>
+                </div>
+
+                {/* Bank Details */}
+                {template.footer.bankDetails.showBankDetails && (
+                  <div className="mb-6">
+                    <h4 
+                      className="font-semibold mb-2"
+                      style={{ color: template.design.primaryColor }}
+                    >
+                      Bank Details:
+                    </h4>
+                    <div className="text-sm text-gray-600">
+                      <p><strong>Bank:</strong> {template.footer.bankDetails.bankName}</p>
+                      <p><strong>Account:</strong> {template.footer.bankDetails.accountNumber}</p>
+                      <p><strong>Routing:</strong> {template.footer.bankDetails.routingNumber}</p>
+                      <p><strong>SWIFT:</strong> {template.footer.bankDetails.swiftCode}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer */}
+                {template.footer.showFooter && (
+                  <div 
+                    className="text-center py-4 border-t-2"
+                    style={{ borderTopColor: template.design.primaryColor }}
+                  >
+                    <p 
+                      className="text-lg font-semibold"
+                      style={{ color: template.design.primaryColor }}
+                    >
+                      {template.footer.footerText}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+          <Card className="min-h-[800px] border">
+            <CardContent className="p-8">
+              <div 
+                className="max-w-4xl mx-auto bg-white"
+                style={{ fontFamily: template.fontStyle }}
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start mb-8">
+                  <div className="flex items-start space-x-4">
+                    {template.logo && (
+                      <img src={template.logo} alt="Company Logo" className="h-16 w-auto" />
+                    )}
+                    <div>
+                      <h1 
+                        className="text-3xl font-semibold mb-2"
+                        style={{ color: template.primaryColor }}
+                      >
+                        {template.companyInfo.name}
+                      </h1>
+                      <div className="text-gray-600 space-y-1">
+                        <p>{template.companyInfo.address}</p>
+                        <p>{template.companyInfo.city}</p>
+                        <p>{template.companyInfo.country}</p>
+                        <p>{template.companyInfo.phone}</p>
+                        <p>{template.companyInfo.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h2 
+                      className="text-2xl font-semibold mb-4"
+                      style={{ color: template.primaryColor }}
+                    >
+                      INVOICE
+                    </h2>
+                    <div className="space-y-1 text-gray-600">
+                      <p><strong>Invoice #:</strong> {mockInvoiceData.invoiceNumber}</p>
+                      <p><strong>Date:</strong> {mockInvoiceData.date}</p>
+                      <p><strong>Due Date:</strong> {mockInvoiceData.dueDate}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bill To */}
+                <div className="mb-8">
+                  <h3 
+                    className="text-lg font-medium mb-3"
+                    style={{ color: template.primaryColor }}
+                  >
+                    Bill To:
+                  </h3>
+                  <div className="text-gray-700">
+                    <p className="font-medium">{mockInvoiceData.client.name}</p>
+                    <p>{mockInvoiceData.client.address}</p>
+                    <p>{mockInvoiceData.client.city}</p>
+                    <p>{mockInvoiceData.client.email}</p>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                <div className="mb-8">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr style={{ backgroundColor: template.secondaryColor }}>
+                        <th className="border border-gray-300 px-4 py-3 text-left font-medium">Description</th>
+                        <th className="border border-gray-300 px-4 py-3 text-center font-medium">Qty</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right font-medium">Rate</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right font-medium">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mockInvoiceData.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="border border-gray-300 px-4 py-3">{item.description}</td>
+                          <td className="border border-gray-300 px-4 py-3 text-center">{item.quantity}</td>
+                          <td className="border border-gray-300 px-4 py-3 text-right">MK{item.rate.toLocaleString()}</td>
+                          <td className="border border-gray-300 px-4 py-3 text-right">MK{item.amount.toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
