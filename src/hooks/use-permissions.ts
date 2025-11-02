@@ -47,44 +47,78 @@ export const usePermissions = () => {
   const userRoles = token ? getUserRoles(token) : [];
   const isLoading = false; // No loading since we get data from token
 
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development' && token) {
+    console.group('🔐 usePermissions Debug Info');
+    console.log('User:', user?.email);
+    console.log('Token exists:', !!token);
+    console.log('User Roles:', userRoles);
+    console.log('User Permissions:', userPermissions);
+    console.groupEnd();
+  }
+
   // Check if user has a specific permission
   const hasPermission = (permissionName: string): boolean => {
-    return userPermissions.includes(permissionName);
+    const result = userPermissions.includes(permissionName);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Permission check "${permissionName}":`, result);
+    }
+    return result;
   };
 
   // Check if user has any of the specified permissions
   const hasAnyPermission = (permissionNames: string[]): boolean => {
-    return permissionNames.some(permissionName => hasPermission(permissionName));
+    const result = permissionNames.some(permissionName => hasPermission(permissionName));
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Any permission check [${permissionNames.join(', ')}]:`, result);
+    }
+    return result;
   };
 
   // Check if user has all of the specified permissions
   const hasAllPermissions = (permissionNames: string[]): boolean => {
-    return permissionNames.every(permissionName => hasPermission(permissionName));
+    const result = permissionNames.every(permissionName => hasPermission(permissionName));
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`All permissions check [${permissionNames.join(', ')}]:`, result);
+    }
+    return result;
   };
 
   // Check if user has a specific role
   const hasRole = (roleName: string): boolean => {
-    return userRoles.includes(roleName);
+    const result = userRoles.includes(roleName);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Role check "${roleName}":`, result);
+    }
+    return result;
   };
 
   // Check if user has any of the specified roles
   const hasAnyRole = (roleNames: string[]): boolean => {
-    return roleNames.some(roleName => hasRole(roleName));
+    const result = roleNames.some(roleName => hasRole(roleName));
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Any role check [${roleNames.join(', ')}]:`, result);
+    }
+    return result;
   };
 
   // Check if user has all of the specified roles
   const hasAllRoles = (roleNames: string[]): boolean => {
-    return roleNames.every(roleName => hasRole(roleName));
+    const result = roleNames.every(roleName => hasRole(roleName));
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`All roles check [${roleNames.join(', ')}]:`, result);
+    }
+    return result;
   };
 
   // Check if user is admin
   const isAdmin = (): boolean => {
-    return hasRole('Administrator') || hasRole('System Admin');
+    return hasRole('System Administrator') || hasRole('Administrator');
   };
 
   // Check if user is manager
   const isManager = (): boolean => {
-    return hasRole('Manager') || hasRole('Administrator') || hasRole('System Admin');
+    return hasRole('Business Manager') || hasRole('Team Lead') || hasRole('System Administrator');
   };
 
   // Get user's permission names

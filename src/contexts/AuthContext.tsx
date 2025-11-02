@@ -10,7 +10,8 @@ interface AuthContextType {
   logout: () => void;
   forgotPassword: (email: string) => Promise<boolean>;
   resetPassword: (token: string, newPassword: string, confirmNewPassword: string, email?: string) => Promise<boolean>;
-  verifyMfa: (userId: string, mfaCode: string) => Promise<boolean>;
+  setPassword: (email: string, token: string, password: string, confirmPassword: string) => Promise<boolean>;
+  verifyMfa: (email: string, password: string, mfaCode: string) => Promise<boolean>;
   sendMfaCode: (userId: string) => Promise<boolean>;
   refreshAuth: () => Promise<void>;
 }
@@ -121,36 +122,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.success) {
         // Check if this is an MFA required response
-        if (
-          ('otp' in response) ||
-          (response.data &&
-            response.data.accessToken === "MFA_REQUIRED" &&
-            response.data.tokenType === "MFA_REQUIRED") ||
-          (response.message && response.message.toLowerCase().includes("mfa verification required"))
-        ) {
+        if (response.message === "MFA verification required" || 
+            (response.data && response.data.accessToken === "MFA_REQUIRED" && response.data.tokenType === "MFA_REQUIRED")) {
           // Store temporary user data for MFA verification
           localStorage.setItem('tempUserData', JSON.stringify({ 
             email: email,
             password: password, // Store password temporarily for MFA completion
-            requiresMfa: true,
-            otp: response.otp // May be null or undefined
+            requiresMfa: true
           }));
           return false; // Indicate MFA is required
         }
         
         // Normal login success
-        if (!response.data || !response.data.accessToken || !response.data.user) {
-          throw new Error('Invalid login response: missing token or user data');
+        if (!response.data || !response.data.accessToken) {
+          // Check if this is actually an MFA response without the expected token format
+          if (response.message === "MFA verification required") {
+            localStorage.setItem('tempUserData', JSON.stringify({ 
+              email: email,
+              password: password,
+              requiresMfa: true
+            }));
+            return false; // Indicate MFA is required
+          }
+          throw new Error('Invalid login response: missing token data');
         }
         
-        const { accessToken, user: userData } = response.data;
+        const { accessToken, refreshToken, expiresAt, tokenType } = response.data;
         
-        // Store token
+        // Store tokens
         localStorage.setItem('authToken', accessToken);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         setToken(accessToken);
         
-        // Extract roles and permissions from JWT token and update user data
-        const { getUserRoles, getUserPermissions } = await import('../lib/jwt-utils');
+        // Extract user data and roles/permissions from JWT token
+        const { getUserRoles, getUserPermissions, decodeJwtToken } = await import('../lib/jwt-utils');
+        const payload = decodeJwtToken(accessToken);
+        
+        if (!payload) {
+          throw new Error('Invalid JWT token received');
+        }
+        
+        // Extract basic user info from JWT
+        const userData = {
+          id: payload.sub || '',
+          email: payload.email || email,
+          firstName: (payload.given_name as string) || '',
+          lastName: (payload.family_name as string) || '',
+          fullName: payload.name || '',
+          emailConfirmed: true, // User can login, so email is confirmed
+          twoFactorEnabled: true, // Based on new flow
+          // Add other default fields as needed
+          status: 'Active',
+          userType: 'Customer',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          age: 0,
+          phoneNumberConfirmed: false,
+          lockoutEnabled: false,
+          accessFailedCount: 0
+        };
+        
         const roles = getUserRoles(accessToken);
         const permissions = getUserPermissions(accessToken);
         
@@ -249,7 +280,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const resetPassword = async (token: string, newPassword: string, confirmNewPassword: string, email?: string): Promise<boolean> => {
     try {
       const { apiService } = await import('../services/api');
-      const response = await apiService.resetPassword({ token, newPassword, confirmNewPassword, email });
+      const response = await apiService.resetPassword({ email: email || '', token, newPassword, confirmPassword: confirmNewPassword });
       
       if (response.success) {
         return true;
@@ -262,20 +293,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyMfa = async (userId: string, mfaCode: string): Promise<boolean> => {
+  const setPassword = async (email: string, token: string, password: string, confirmPassword: string): Promise<boolean> => {
     try {
       const { apiService } = await import('../services/api');
-      const response = await apiService.verifyMfa({ userId, mfaCode });
+      const response = await apiService.setPassword({ email, token, password, confirmPassword });
       
       if (response.success) {
-        const { accessToken, user: userData } = response.data;
+        return true;
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Set password failed:', error);
+      throw error;
+    }
+  };
+
+  const verifyMfa = async (email: string, password: string, mfaCode: string): Promise<boolean> => {
+    try {
+      const { apiService } = await import('../services/api');
+      const response = await apiService.verifyMfaUnauthenticated({ email, password, mfaCode });
+      
+      if (response.success) {
+        const { accessToken, refreshToken, expiresAt, tokenType } = response.data;
         
-        // Store token
+        // Store tokens
         localStorage.setItem('authToken', accessToken);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         setToken(accessToken);
         
-        // Extract roles and permissions from JWT token and update user data
-        const { getUserRoles, getUserPermissions } = await import('../lib/jwt-utils');
+        // Extract user data and roles/permissions from JWT token
+        const { getUserRoles, getUserPermissions, decodeJwtToken } = await import('../lib/jwt-utils');
+        const payload = decodeJwtToken(accessToken);
+        
+        if (!payload) {
+          throw new Error('Invalid JWT token received');
+        }
+        
+        // Extract basic user info from JWT
+        const userData = {
+          id: payload.sub || '',
+          email: payload.email || email,
+          firstName: (payload.given_name as string) || '',
+          lastName: (payload.family_name as string) || '',
+          fullName: payload.name || '',
+          emailConfirmed: true, // User can login, so email is confirmed
+          twoFactorEnabled: true, // Based on new flow
+          // Add other default fields as needed
+          status: 'Active',
+          userType: 'Customer',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          age: 0,
+          phoneNumberConfirmed: false,
+          lockoutEnabled: false,
+          accessFailedCount: 0
+        };
+        
         const roles = getUserRoles(accessToken);
         const permissions = getUserPermissions(accessToken);
         
@@ -290,6 +364,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('authUser', JSON.stringify(userWithAuth));
         setUser(userWithAuth);
         
+        // Clear temporary user data
+        localStorage.removeItem('tempUserData');
+        
+        console.log('MFA verification successful, auth state updated');
         return true;
       } else {
         throw new Error(response.message);
@@ -334,6 +412,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     forgotPassword,
     resetPassword,
+    setPassword,
     verifyMfa,
     sendMfaCode,
     refreshAuth, // Add this to the context value

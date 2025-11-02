@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, FileText, Loader2 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'react-toastify';
 
 export const ResetPassword: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,39 +39,26 @@ export const ResetPassword: React.FC = () => {
     confirmPassword: ''
   });
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [firstLoginError, setFirstLoginError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isFirstLogin && !token) {
-      toast({
-        title: "Invalid reset link",
-        description: "The password reset link is invalid or has expired.",
-        variant: "destructive",
-      });
-      navigate('/forgot-password');
+      toast.error("Invalid reset link - The password reset link is invalid or has expired.");
+      navigate('/login');
     }
-  }, [token, isFirstLogin, navigate, toast]);
+  }, [token, isFirstLogin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords are the same.",
-        variant: "destructive",
-      });
+      toast.error("Passwords don't match - Please make sure both passwords are the same.");
       return;
     }
 
   
     if (formData.password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
+      toast.error("Password too short - Password must be at least 6 characters long.");
       return;
     }
 
@@ -82,20 +69,12 @@ export const ResetPassword: React.FC = () => {
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
     
     if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
-      toast({
-        title: "Password requirements not met",
-        description: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
-        variant: "destructive",
-      });
+      toast.error("Password requirements not met - Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
       return;
     }
 
     if (!token) {
-      toast({
-        title: "Invalid reset link",
-        description: "The password reset link is invalid or has expired.",
-        variant: "destructive",
-      });
+      toast.error("Invalid reset link - The password reset link is invalid or has expired.");
       return;
     }
 
@@ -106,10 +85,7 @@ export const ResetPassword: React.FC = () => {
       
       if (success) {
         setIsReset(true);
-        toast({
-          title: "Password reset successful",
-          description: "Your password has been reset successfully.",
-        });
+        toast.success("Password reset successful - Your password has been reset successfully.");
       }
     } catch (error: unknown) {
       console.error('Reset password error:', error);
@@ -118,11 +94,7 @@ export const ResetPassword: React.FC = () => {
         ? (error as { message: string }).message
         : "Failed to reset password. Please try again.";
       
-      toast({
-        title: "Reset failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(`Reset failed - ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -137,20 +109,12 @@ export const ResetPassword: React.FC = () => {
     e.preventDefault();
     setFirstLoginError(null);
     if (firstLoginForm.newPassword !== firstLoginForm.confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords are the same.",
-        variant: "destructive",
-      });
+      toast.error("Passwords don't match - Please make sure both passwords are the same.");
       return;
     }
     // Password validation
     if (firstLoginForm.newPassword.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
+      toast.error("Password too short - Password must be at least 6 characters long.");
       return;
     }
     const hasUppercase = /[A-Z]/.test(firstLoginForm.newPassword);
@@ -158,11 +122,7 @@ export const ResetPassword: React.FC = () => {
     const hasNumber = /\d/.test(firstLoginForm.newPassword);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(firstLoginForm.newPassword);
     if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
-      toast({
-        title: "Password requirements not met",
-        description: "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
-        variant: "destructive",
-      });
+      toast.error("Password requirements not met - Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
       return;
     }
     setFirstLoginLoading(true);
@@ -182,28 +142,18 @@ export const ResetPassword: React.FC = () => {
           await refreshAuth();
         }
         setFirstLoginReset(true);
-        toast({
-          title: "Password changed successfully",
-          description: "You are now logged in.",
-        });
+        toast.success("Password changed successfully - You are now logged in.");
         await new Promise(res => setTimeout(res, 200));
         navigate('/');
         return;
       } else if (resp.success) {
         setFirstLoginReset(true);
-        toast({
-          title: "Password changed successfully",
-          description: "You can now log in with your new password.",
-        });
+        toast.success("Password changed successfully - You can now log in with your new password.");
         // Do NOT navigate away
         return;
       } else {
         setFirstLoginError(resp.message || "Failed to reset password. Please try again.");
-        toast({
-          title: "Reset failed",
-          description: resp.message || "Failed to reset password. Please try again.",
-          variant: "destructive",
-        });
+        toast.error(`Reset failed - ${resp.message || "Failed to reset password. Please try again."}`);
         // Do NOT navigate away
         return;
       }
@@ -213,11 +163,7 @@ export const ResetPassword: React.FC = () => {
         : "Failed to reset password. Please try again.";
       
       setFirstLoginError(errorMessage);
-      toast({
-        title: "Reset failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(`Reset failed - ${errorMessage}`);
     } finally {
       setFirstLoginLoading(false);
     }
@@ -266,9 +212,6 @@ export const ResetPassword: React.FC = () => {
                     onChange={e => setFirstLoginForm(f => ({ ...f, newPassword: e.target.value }))}
                     required
                   />
-                  <p className="text-xs text-gray-500">
-                    Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
@@ -325,9 +268,6 @@ export const ResetPassword: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500">
-                  Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.
-                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -363,11 +303,21 @@ export const ResetPassword: React.FC = () => {
               </Button>
             </form>
           ) : (
-            <div className="text-center space-y-4">
-              <p className="text-sm text-gray-600">
-                Your password has been successfully reset. You can now log in with your new password.
-              </p>
-              <Button asChild className="w-full">
+            <div className="text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Password Reset Successful!</h3>
+                <p className="text-sm text-gray-600">
+                  Your password has been successfully reset. You can now log in with your new password.
+                </p>
+              </div>
+              <Button asChild className="w-full bg-green-600 hover:bg-green-700">
                 <Link to="/login">Continue to Login</Link>
               </Button>
             </div>

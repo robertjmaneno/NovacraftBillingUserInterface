@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,88 +6,87 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, FileText, Receipt, Calculator, CreditCard, Loader2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-toastify';
 import { useApiErrorToast } from '@/hooks/use-api-error-toast';
-import { useToast } from '@/hooks/use-toast';
 
 export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { showApiError } = useApiErrorToast();
-  const { toast } = useToast();
 
-  
+  // Get email from location state (from SetPassword page)
+  const emailFromState = location.state?.email || '';
+  const messageFromState = location.state?.message || '';
+
+  const [formData, setFormData] = useState({
+    email: emailFromState,
+    password: ''
+  });
+
+  // Show success message if coming from SetPassword
+  useEffect(() => {
+    if (messageFromState) {
+      toast.success(messageFromState);
+    }
+  }, [messageFromState]);
+
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('handleSubmit function called');
     e.preventDefault();
-    console.log('Login form submitted with:', formData);
     setIsLoading(true);
 
     try {
-      console.log('Calling login function...');
       const success = await login(formData.email, formData.password);
-      console.log('Login result:', success);
       
       if (success === 'PASSWORD_CHANGE_REQUIRED') {
         // Store temp password for reset
         localStorage.setItem('tempUserData', JSON.stringify({ email: formData.email, password: formData.password }));
-        console.log('Redirecting to reset password page for first login');
-        toast({
-          title: "Password Change Required",
-          description: "Please change your password on first login.",
-          variant: "destructive",
-        });
+        toast.error("Password Change Required - Please change your password on first login.");
         navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
         return;
       }
       if (success === 'EMAIL_CONFIRMATION_REQUIRED') {
-        console.log('Redirecting to confirm email page');
-        toast({
-          title: "Email Confirmation Required",
-          description: "Please check your email and confirm your account before logging in.",
-          variant: "destructive",
-        });
+        toast.error("Email Confirmation Required - Please check your email and confirm your account before logging in.");
         navigate(`/confirm-email?email=${encodeURIComponent(formData.email)}`);
         return;
       }
       if (success) {
-        console.log('Login successful, navigating to dashboard');
         // Get the user object from localStorage (set by AuthContext)
         const user = JSON.parse(localStorage.getItem('authUser') || '{}');
         if (user.mustChangePassword) {
-          console.log('User must change password, redirecting');
           navigate(`/reset-password?firstLogin=1&email=${encodeURIComponent(formData.email)}`);
           return;
         }
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
+        toast.success("Login successful - Welcome back!");
         
         // Add a small delay to ensure auth state is updated
         setTimeout(() => {
           navigate(from, { replace: true });
         }, 100);
       } else {
-        console.log('MFA is required, redirecting to MFA page');
-        toast({
-          title: "MFA verification required",
-          description: "Please check your email for the verification code.",
-        });
+        toast.info("MFA verification required - Please check your email for the verification code.");
         navigate('/mfa', { replace: true });
       }
     } catch (error: unknown) {
-      console.error('Login error:', error);
-      showApiError(error, "Login failed");
+      // Provide more specific error handling for login
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('invalid email or password')) {
+          toast.error(`Login Failed: The email or password you entered is incorrect. Please double-check your credentials.${formData.email ? ` Make sure you're using the correct email: ${formData.email}` : ''}`);
+        } else if (errorMsg.includes('email not confirmed') || errorMsg.includes('confirm your email')) {
+          toast.error("Email Not Confirmed: Please check your email and set up your password before logging in. Look for an email with password setup instructions.");
+        } else {
+          // Use the enhanced API error handler for other errors
+          showApiError(error, "Login failed");
+        }
+      } else {
+        showApiError(error, "Login failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +183,6 @@ export const Login: React.FC = () => {
                 type="submit" 
                 className="w-full" 
                 disabled={isLoading}
-                onClick={() => console.log('Sign In button clicked')}
               >
                 {isLoading ? (
                   <>

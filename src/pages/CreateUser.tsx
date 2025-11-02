@@ -141,6 +141,8 @@ export const CreateUser: React.FC = () => {
         roleNames: roleNames,
       });
       
+      // Show success message for admin creating user
+      toast.success(`User created successfully! ${formData.firstName} ${formData.lastName} will receive an email to set up their password.`);
       navigate('/users');
     } catch (error) {
       console.error('Failed to create user:', error);

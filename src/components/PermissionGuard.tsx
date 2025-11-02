@@ -50,7 +50,7 @@ export const AdminGuard: React.FC<{ children: React.ReactNode; fallback?: React.
   fallback 
 }) => {
   return (
-    <PermissionGuard roles={['Administrator', 'System Admin', 'SystemAdmin']} fallback={fallback}>
+    <PermissionGuard roles={['System Administrator', 'Administrator']} fallback={fallback}>
       {children}
     </PermissionGuard>
   );
@@ -61,7 +61,40 @@ export const ManagerGuard: React.FC<{ children: React.ReactNode; fallback?: Reac
   fallback 
 }) => {
   return (
-    <PermissionGuard roles={['Manager', 'Administrator', 'System Admin', 'SystemAdmin']} fallback={fallback}>
+    <PermissionGuard roles={['Business Manager', 'Team Lead', 'System Administrator']} fallback={fallback}>
+      {children}
+    </PermissionGuard>
+  );
+};
+
+export const BillingGuard: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({ 
+  children, 
+  fallback 
+}) => {
+  return (
+    <PermissionGuard roles={['Billing Specialist', 'Business Manager', 'System Administrator']} fallback={fallback}>
+      {children}
+    </PermissionGuard>
+  );
+};
+
+export const SalesGuard: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({ 
+  children, 
+  fallback 
+}) => {
+  return (
+    <PermissionGuard roles={['Sales Representative', 'Team Lead', 'Business Manager', 'System Administrator']} fallback={fallback}>
+      {children}
+    </PermissionGuard>
+  );
+};
+
+export const CustomerServiceGuard: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({ 
+  children, 
+  fallback 
+}) => {
+  return (
+    <PermissionGuard roles={['Customer Service', 'Team Lead', 'Business Manager', 'System Administrator']} fallback={fallback}>
       {children}
     </PermissionGuard>
   );

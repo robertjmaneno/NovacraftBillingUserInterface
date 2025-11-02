@@ -13,13 +13,13 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Activity
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DashboardShimmer } from '@/components/ui/shimmer';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { apiService } from '@/services/api';
+import { useDashboard } from '@/hooks/use-dashboard';
 
 // Helper function to get customer display name (same as in Subscriptions)
 const getCustomerDisplayName = (customer: Record<string, unknown>) => {
@@ -88,179 +88,185 @@ const getStatusIcon = (status: string) => {
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
-  // Fetch payment stats
-  const { data: paymentStats, isLoading: paymentStatsLoading, error: paymentStatsError } = useQuery({
-    queryKey: ['payment-stats'],
-    queryFn: () => apiService.getPaymentStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  // Fetch dashboard data - backend handles role-based permissions and returns appropriate data
+  const { data: dashboardData, isLoading, error } = useDashboard();
 
-  // Fetch total subscription revenue
-  const { data: subscriptionRevenue, isLoading: subscriptionRevenueLoading, error: subscriptionRevenueError } = useQuery({
-    queryKey: ['subscription-revenue'],
-    queryFn: () => apiService.getTotalSubscriptionRevenue(),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Fetch customers count
-  const { data: customersData, isLoading: customersLoading, error: customersError } = useQuery({
-    queryKey: ['customers-count'],
-    queryFn: () => apiService.getCustomers({ pageSize: 1 }), // Just get count
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Fetch invoices count and recent invoices
-  const { data: invoicesData, isLoading: invoicesLoading, error: invoicesError } = useQuery({
-    queryKey: ['invoices-data'],
-    queryFn: () => apiService.getInvoices({ pageSize: 5 }), // Get latest 5 invoices
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Fetch outstanding amount from reports endpoint
-  const { data: outstandingAmountData, isLoading: outstandingAmountLoading, error: outstandingAmountError } = useQuery({
-    queryKey: ['report-outstanding-amount'],
-    queryFn: () => apiService.getReportOutstandingAmount(),
-    staleTime: 5 * 60 * 1000,
-    retry: false, // Don't retry 403 errors
-  });
-
-  const isLoading = paymentStatsLoading || subscriptionRevenueLoading || customersLoading || invoicesLoading || outstandingAmountLoading;
-  
-  // Only treat it as a critical error if it's not a permission issue
-  const isCriticalError = (error: unknown) => {
-    return error && !(error instanceof Error && error.message.includes('403'));
-  };
-  
-  const criticalError = isCriticalError(paymentStatsError) || 
-                       isCriticalError(subscriptionRevenueError) || 
-                       isCriticalError(customersError) || 
-                       isCriticalError(invoicesError);
+  // Debug logging to help troubleshoot
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Dashboard Debug Info:');
+    console.log('- User:', user);
+    console.log('- Loading:', isLoading);
+    console.log('- Error:', error);
+    console.log('- Dashboard Data:', dashboardData);
+  }
 
   if (isLoading) {
     return <DashboardShimmer />;
   }
 
-  if (criticalError) {
+  if (error) {
     return (
-      <div className="p-8 text-center text-red-500">
-        Unable to load dashboard data. Please try again later.<br />
-        <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => window.location.reload()}>Retry</button>
+      <div className="p-8 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="text-red-600 mb-4">
+            <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+            <h3 className="text-lg font-semibold">Unable to load dashboard data</h3>
+          </div>
+          <p className="text-red-700 mb-4">
+            {error.message || 'Please try again later.'}
+          </p>
+          <Button onClick={() => window.location.reload()} className="bg-red-600 hover:bg-red-700">
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
 
-  // Calculate stats from API data
-  const totalRevenue = (paymentStats?.data?.totalPayments || 0) + (subscriptionRevenue?.data || 0);
-  const totalCustomers = (customersData?.data as Record<string, unknown>)?.totalCount as number || 0;
-  const totalInvoices = (invoicesData?.data as Record<string, unknown>)?.totalCount as number || 0;
-  const recentInvoices = (invoicesData?.data as Record<string, unknown>)?.items as unknown[] || [];
+  // Extract data from backend response
+  const stats = dashboardData?.data?.stats || [];
+  const recentInvoices = dashboardData?.data?.recentInvoices || [];
+  const availableActions = dashboardData?.data?.availableActions || [];
 
-  const stats = [
+  // Debug what we got from backend
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Dashboard Data Extracted:');
+    console.log('- Stats:', stats);
+    console.log('- Recent Invoices:', recentInvoices);
+    console.log('- Available Actions:', availableActions);
+  }
+
+  // Default stats to show if backend doesn't provide any
+  const defaultStats = [
     {
-      title: 'Total Revenue',
-      value: `${Number(totalRevenue).toLocaleString()} MWK`,
-      change: '+0%',
-      changeType: 'positive' as const,
-      icon: DollarSign,
-      color: 'text-green-600 bg-green-50',
-      trend: 'up' as const,
+      label: 'My Invoices',
+      value: '0',
+      icon: 'FileText',
+      change: undefined,
+      trend: undefined,
     },
     {
-      title: 'Outstanding Payments',
-      value: `${Number(outstandingAmountData?.data || 0).toLocaleString()} MWK`,
-      change: '+0%',
-      changeType: 'negative' as const,
-      icon: AlertCircle,
-      color: 'text-orange-600 bg-orange-50',
-      trend: 'down' as const,
+      label: 'Outstanding Amount',
+      value: '0 MWK',
+      icon: 'AlertCircle',
+      change: undefined,
+      trend: undefined,
     },
     {
-      title: 'Total Invoices',
-      value: totalInvoices.toString(),
-      change: '+0%',
-      changeType: 'positive' as const,
-      icon: FileText,
-      color: 'text-blue-600 bg-blue-50',
-      trend: 'up' as const,
+      label: 'My Customers',
+      value: '0',
+      icon: 'Users',
+      change: undefined,
+      trend: undefined,
     },
     {
-      title: 'Total Customers',
-      value: totalCustomers.toString(),
-      change: '+0%',
-      changeType: 'positive' as const,
-      icon: Users,
-      color: 'text-purple-600 bg-purple-50',
-      trend: 'up' as const,
+      label: 'Active Subscriptions',
+      value: '0',
+      icon: 'Calendar',
+      change: undefined,
+      trend: undefined,
     },
   ];
 
+  // Default actions to show if backend doesn't provide any
+  const defaultActions = [
+    {
+      label: 'View Invoices',
+      description: 'Check your invoices',
+      link: '/invoices',
+      icon: 'FileText',
+      color: 'bg-blue-50 text-blue-600',
+    },
+    {
+      label: 'View Customers',
+      description: 'Manage your customers',
+      link: '/customers',
+      icon: 'Users',
+      color: 'bg-green-50 text-green-600',
+    },
+    {
+      label: 'View Subscriptions',
+      description: 'Check subscriptions',
+      link: '/subscriptions',
+      icon: 'Calendar',
+      color: 'bg-purple-50 text-purple-600',
+    },
+    {
+      label: 'View Reports',
+      description: 'Generate reports',
+      link: '/reports',
+      icon: 'TrendingUp',
+      color: 'bg-orange-50 text-orange-600',
+    },
+  ];
+
+  // Use backend data if available, otherwise use defaults
+  const displayStats = stats.length > 0 ? stats : defaultStats;
+  const displayActions = availableActions.length > 0 ? availableActions : defaultActions;
+
   // Get user's display name
-  const getUserDisplayName = () => {
-    if (!user) return 'User';
-    
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
-    } else if (user.firstName) {
-      return user.firstName;
-    } else if (user.fullName) {
-      return user.fullName;
-    } else {
-      return 'User';
+  const displayName = user?.firstName || user?.fullName || 'User';
+
+  // Icon mapping for stats
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'TrendingUp': return TrendingUp;
+      case 'Users': return Users;
+      case 'FileText': return FileText;
+      case 'Calendar': return Calendar;
+      case 'DollarSign': return DollarSign;
+      case 'AlertCircle': return AlertCircle;
+      case 'Activity': return Activity;
+      default: return TrendingUp;
     }
   };
-
-  const displayName = getUserDisplayName();
 
   return (
     <div className="space-y-8">      
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
-     
-          <p className="text-lg font-semibold text-gray-700">Welcome back, {displayName}! Here's what's happening with your business.</p>
-        </div>
-        <div className="flex space-x-3">
-          <Link to="/invoices/create">
-            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg">
-              <Plus className="w-4 h-4 mr-2" />
-              New Invoice
-            </Button>
-          </Link>
+          <p className="text-lg font-semibold text-gray-700">
+            Welcome back, {displayName}! Here's your dashboard.
+          </p>
         </div>
       </div>
 
-      {/* Enhanced Stats Grid */}
+      {/* Stats Grid - Always show */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="border">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`p-2 rounded-lg ${stat.color}`}>
-                  <stat.icon className="w-5 h-5" />
-                </div>
-                <div className={`flex items-center space-x-1 ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.trend === 'up' ? (
-                    <ArrowUpRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowDownRight className="w-3 h-3" />
+        {displayStats.map((stat, index) => {
+          const IconComponent = getIcon(stat.icon);
+          
+          return (
+            <Card key={index} className="border">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-blue-50">
+                    <IconComponent className="w-5 h-5 text-blue-600" />
+                  </div>
+                  {stat.change && stat.trend && (
+                    <div className={`flex items-center space-x-1 ${
+                      stat.trend === 'up' ? 'text-green-600' : stat.trend === 'down' ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {stat.trend === 'up' && <ArrowUpRight className="w-3 h-3" />}
+                      {stat.trend === 'down' && <ArrowDownRight className="w-3 h-3" />}
+                      <span className="text-xs font-semibold">{stat.change}</span>
+                    </div>
                   )}
-                  <span className="text-xs font-semibold">{stat.change}</span>
                 </div>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                <p className="text-xs text-gray-500">from last month</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div>
+                  <p className="text-xs font-medium text-gray-600 mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                  {stat.change && <p className="text-xs text-gray-500">from last month</p>}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Enhanced Recent Invoices */}
+        {/* Recent Invoices - Always show structure */}
         <Card className="lg:col-span-2 border">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -277,81 +283,78 @@ export const Dashboard: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {recentInvoices.length > 0 ? (
-                recentInvoices.map((invoice: Record<string, unknown>) => (
-                  <div key={invoice.id as string} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+            {recentInvoices && recentInvoices.length > 0 ? (
+              <div className="space-y-2">
+                {recentInvoices.map((invoice) => (
+                  <div key={invoice.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
                     <div className="flex items-center space-x-3 flex-1">
                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                         <FileText className="w-4 h-4 text-blue-600" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-semibold text-sm text-gray-900">{(invoice.invoiceNumber as string) || `INV-${invoice.id}`}</span>
-                          <Badge className={`${getStatusColor(statusNameMap[invoice.status as keyof typeof statusNameMap] || 'Unknown')} text-xs flex items-center space-x-1`}>
-                            {getStatusIcon(statusNameMap[invoice.status as keyof typeof statusNameMap] || 'Unknown')}
-                            <span>{statusNameMap[invoice.status as keyof typeof statusNameMap] || 'Unknown'}</span>
+                          <span className="font-semibold text-sm text-gray-900">{invoice.invoiceNumber || `INV-${invoice.id}`}</span>
+                          <Badge className={`${getStatusColor(statusNameMap[invoice.status] || 'Unknown')} text-xs flex items-center space-x-1`}>
+                            {getStatusIcon(statusNameMap[invoice.status] || 'Unknown')}
+                            <span>{statusNameMap[invoice.status] || 'Unknown'}</span>
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-600">{getCustomerDisplayName(invoice.customer as Record<string, unknown>)}</p>
-                        <p className="text-xs text-gray-500">{invoice.createdAt ? new Date(invoice.createdAt as string).toLocaleDateString() : '-'}</p>
+                        <p className="text-xs text-gray-600">{getCustomerDisplayName(invoice.customer)}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-gray-900 text-sm">{invoice.amount ? `${Number(invoice.amount).toLocaleString()} MWK` : '-'}</p>
+                      <p className="font-semibold text-sm text-gray-900">
+                        {invoice.amount?.toLocaleString() || '0'} MWK
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A'}
+                      </p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <p>No invoices found</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 font-medium">No recent invoices</p>
+                <p className="text-sm text-gray-400 mt-1">Your invoices will appear here</p>
+                <Link to="/invoices/create">
+                  <Button className="mt-4" size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Invoice
+                  </Button>
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Enhanced Quick Actions */}
+        {/* Available Actions - Always show */}
         <Card className="border">
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-            <p className="text-xs text-gray-600">Common tasks</p>
+          <CardHeader className="pb-3">
+            <div>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <p className="text-xs text-gray-600 mt-1">Common tasks and navigation</p>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              <Link to="/invoices/create">
-                <Button variant="outline" className="w-full h-20 flex-col">
-                  <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center mb-1">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <span className="text-xs font-medium">Create Invoice</span>
-                </Button>
-              </Link>
-              <Link to="/customers">
-                <Button variant="outline" className="w-full h-20 flex-col">
-                  <div className="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center mb-1">
-                    <Users className="w-4 h-4 text-green-600" />
-                  </div>
-                  <span className="text-xs font-medium">Add Client</span>
-                </Button>
-              </Link>
-              <Link to="/subscriptions/create">
-                <Button variant="outline" className="w-full h-20 flex-col">
-                  <div className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center mb-1">
-                    <Calendar className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <span className="text-xs font-medium">New Subscription</span>
-                </Button>
-              </Link>
-              <Link to="/services">
-                <Button variant="outline" className="w-full h-20 flex-col">
-                  <div className="w-6 h-6 bg-orange-100 rounded-lg flex items-center justify-center mb-1">
-                    <TrendingUp className="w-4 h-4 text-orange-600" />
-                  </div>
-                  <span className="text-xs font-medium">Manage Services</span>
-                </Button>
-              </Link>
+            <div className="grid gap-4 grid-cols-1">
+              {displayActions.map((action, index) => {
+                const IconComponent = getIcon(action.icon);
+                return (
+                  <Link key={index} to={action.link} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center`}>
+                        <IconComponent className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{action.label}</p>
+                        <p className="text-xs text-gray-600">{action.description}</p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService, CreateUserRequest } from '@/services/api';
+import { apiService, CreateUserRequest, UpdateUserRequest, AssignRoleRequest } from '@/services/api';
 import { toast } from 'sonner';
 
 // Query keys
@@ -159,7 +159,7 @@ export const useUpdateCurrentProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: apiService.updateCurrentProfile,
+    mutationFn: (data: UpdateUserRequest) => apiService.updateCurrentProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...userKeys.details(), 'current'] });
       toast.success('Profile updated successfully');
@@ -257,7 +257,7 @@ export const useAssignRoleToUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: apiService.assignRoleToUser,
+    mutationFn: (data: AssignRoleRequest) => apiService.assignRoleToUser(data),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: userKeys.roles(userId) });
       queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) });

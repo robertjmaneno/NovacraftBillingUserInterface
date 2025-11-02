@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -52,12 +59,12 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useUsers, useDeleteUser, useActivateUser, useDeactivateUser, useSuspendUser, useUnlockUser, useLockUser } from '@/hooks/use-users';
+import { useUsers, useDeleteUser, useActivateUser, useDeactivateUser, useSuspendUser, useUnlockUser, useLockUser, useUpdateUser } from '@/hooks/use-users';
 import { useActiveRoles } from '@/hooks/use-roles';
-import { usePermissions } from '@/hooks/use-permissions';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { getUserInitials } from '@/lib/utils';
 import { TableShimmer } from '@/components/ui/shimmer';
+import { UserData } from '@/services/api';
 
 export const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,29 +74,6 @@ export const UserManagement: React.FC = () => {
   const [editUser, setEditUser] = useState<unknown>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [suspendModal, setSuspendModal] = useState<{ userId: string; reason: string } | null>(null);
-
-  const { hasPermission, hasAnyPermission, getUserPermissionNames } = usePermissions();
-
-  // Check if user has permission to view users
-  const canViewUsers = hasAnyPermission([
-    'Users.Read', 
-    'Users.Manage'
-  ]);
-  
-  const canViewRoles = hasAnyPermission([
-    'Roles.Read', 
-    'Roles.Manage'
-  ]);
-  
-  // Check if user can manage users
-  const canManageUsers = hasAnyPermission([
-    'Users.Update',
-    'Users.Activate',
-    'Users.Suspend',
-    'Users.ResetPassword',
-    'Users.ManageMFA',
-    'Users.Manage'
-  ]);
   
 
   
@@ -97,17 +81,13 @@ export const UserManagement: React.FC = () => {
 
 
 
-  // Fetch users with search and pagination (only if user has permission)
+  // Fetch users with search and pagination
   const { data: usersData, isLoading, error } = useUsers(currentPage, pageSize, {
     searchTerm: searchTerm || undefined,
-  }, {
-    enabled: canViewUsers, // Only fetch if user has permission
   });
 
-  // Fetch active roles for display (only if user has permission)
-  const { data: rolesData } = useActiveRoles({
-    enabled: canViewRoles, // Only fetch if user has permission
-  });
+  // Fetch active roles for display
+  const { data: rolesData } = useActiveRoles();
 
   // Mutations
   const deleteUserMutation = useDeleteUser();
@@ -235,8 +215,8 @@ export const UserManagement: React.FC = () => {
     return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  // Check if user has permission to view users
-  if (!canViewUsers) {
+  // Handle errors from API calls (like 401/403 from backend authorization)
+  if (error) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -248,12 +228,9 @@ export const UserManagement: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="text-center text-red-600">
-              <p>You don't have permission to view users.</p>
+              <p>Unable to load user data.</p>
               <p className="text-sm text-gray-500 mt-1">
-                Required permissions: "View Users", "Manage Users", "Users.Read", or "Users.Manage"
-              </p>
-              <p className="text-xs text-gray-400 mt-2">
-                Your current permissions: {getUserPermissionNames().join(', ') || 'None'}
+                {error.message || 'You may not have permission to access this resource.'}
               </p>
             </div>
           </CardContent>
@@ -262,9 +239,39 @@ export const UserManagement: React.FC = () => {
     );
   }
 
-
-
-
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 bg-gray-200 rounded w-48 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-64 animate-pulse"></div>
+          </div>
+          <div className="flex space-x-2">
+            <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
+          </div>
+        </div>
+        
+        {/* Search Card Skeleton */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          </CardContent>
+        </Card>
+        
+        {/* Table Skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </CardHeader>
+          <CardContent>
+            <TableShimmer rows={10} columns={8} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -356,15 +363,10 @@ export const UserManagement: React.FC = () => {
         <CardHeader>
           <CardTitle>
             Users ({totalCount})
-            {isLoading && <Loader2 className="inline ml-2 h-4 w-4 animate-spin" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <TableShimmer rows={8} columns={8} />
-          ) : (
-            <>
-              <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
                 <Table>
                 <TableHeader>
                   <TableRow>
@@ -458,43 +460,39 @@ export const UserManagement: React.FC = () => {
                             </PermissionGuard>
                             {(user.status === 'Active' || user.status === 1) && ( // Active
                               <>
-                                {canManageUsers && (
-                                  <>
-                                    <DropdownMenuItem onClick={() => handleUserAction(user.id, 'deactivate')}>
-                                      <XCircle className="mr-2 h-4 w-4" />
-                                      Deactivate
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setSuspendModal({ userId: user.id, reason: '' })}>
-                                      <UserX className="mr-2 h-4 w-4" />
-                                      Suspend
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleUserAction(user.id, 'lock')}>
-                                      <Lock className="mr-2 h-4 w-4" />
-                                      Lock
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, 'deactivate')}>
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  Deactivate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSuspendModal({ userId: user.id, reason: '' })}>
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Suspend
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUserAction(user.id, 'lock')}>
+                                  <Lock className="mr-2 h-4 w-4" />
+                                  Lock
+                                </DropdownMenuItem>
                               </>
                             )}
-                            {(user.status === 'Inactive' || user.status === 2) && canManageUsers && ( // Inactive
+                            {(user.status === 'Inactive' || user.status === 2) && ( // Inactive
                               <DropdownMenuItem onClick={() => handleUserAction(user.id, 'activate')}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Activate
                               </DropdownMenuItem>
                             )}
-                            {(user.status === 'Locked' || user.status === 5) && canManageUsers && ( // Locked
+                            {(user.status === 'Locked' || user.status === 5) && ( // Locked
                               <DropdownMenuItem onClick={() => handleUserAction(user.id, 'unlock')}>
                                 <Unlock className="mr-2 h-4 w-4" />
                                 Unlock
                               </DropdownMenuItem>
                             )}
-                            {(user.status === 'Suspended' || user.status === 3) && canManageUsers && ( // Suspended
+                            {(user.status === 'Suspended' || user.status === 3) && ( // Suspended
                               <DropdownMenuItem onClick={() => handleUserAction(user.id, 'activate')}>
                                 <Play className="mr-2 h-4 w-4" />
                                 Reactivate
                               </DropdownMenuItem>
                             )}
-                            {(user.status === 'Deactivated' || user.status === 6) && canManageUsers && ( // Deactivated
+                            {(user.status === 'Deactivated' || user.status === 6) && ( // Deactivated
                               <DropdownMenuItem onClick={() => handleUserAction(user.id, 'activate')}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Reactivate
@@ -555,8 +553,6 @@ export const UserManagement: React.FC = () => {
                   </Pagination>
                 </div>
               )}
-            </>
-          )}
         </CardContent>
       </Card>
 
@@ -623,21 +619,11 @@ export const UserManagement: React.FC = () => {
       </Dialog>
 
       {/* Edit User Dialog */}
-      <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-          {editUser && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Edit functionality will be implemented. Currently showing user: {(editUser as Record<string, unknown>).firstName as string} {(editUser as Record<string, unknown>).lastName as string}
-              </p>
-              {/* TODO: Implement edit form with pre-populated data */}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditUserDialog 
+        user={editUser as UserData}
+        open={!!editUser}
+        onClose={() => setEditUser(null)}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
@@ -708,5 +694,336 @@ export const UserManagement: React.FC = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+// Edit User Dialog Component
+interface EditUserDialogProps {
+  user: UserData | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+const userTypes = [
+  { value: 'admin', label: 'Administrator' },
+  { value: 'customer', label: 'Customer' },
+  { value: 'employee', label: 'Employee' },
+  { value: 'contractor', label: 'Contractor' },
+  { value: 'vendor', label: 'Vendor' }
+];
+
+const genderOptions = [
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
+  { value: 'Prefer not to say', label: 'Prefer not to say' }
+];
+
+const EditUserDialog: React.FC<EditUserDialogProps> = ({ user, open, onClose }) => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    email: '',
+    phoneNumber: '',
+    company: '',
+    jobTitle: '',
+    address: '',
+    dateOfBirth: '',
+    gender: '',
+    userType: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const updateUserMutation = useUpdateUser();
+
+  // Initialize form data when user changes
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        middleName: user.middleName || '',
+        email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
+        company: user.company || '',
+        jobTitle: user.jobTitle || '',
+        address: user.address || '',
+        dateOfBirth: user.dateOfBirth || '',
+        gender: typeof user.gender === 'string' ? user.gender : '',
+        userType: typeof user.userType === 'string' ? user.userType : ''
+      });
+      setErrors({});
+    }
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) return;
+
+    // Validate form
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      await updateUserMutation.mutateAsync({
+        id: user.id,
+        data: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          middleName: formData.middleName || undefined,
+          phoneNumber: formData.phoneNumber || undefined,
+          company: formData.company || undefined,
+          jobTitle: formData.jobTitle || undefined,
+          address: formData.address || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          gender: formData.gender || undefined,
+          userType: formData.userType || undefined,
+        }
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  };
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit User - {user.firstName} {user.lastName}</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-gray-700">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className={`${errors.firstName ? 'border-red-500' : ''} text-gray-700`}
+                  disabled={updateUserMutation.isPending}
+                />
+                {errors.firstName && (
+                  <p className="text-sm text-red-600">{errors.firstName}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-gray-700">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className={`${errors.lastName ? 'border-red-500' : ''} text-gray-700`}
+                  disabled={updateUserMutation.isPending}
+                />
+                {errors.lastName && (
+                  <p className="text-sm text-red-600">{errors.lastName}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="middleName" className="text-gray-700">Middle Name</Label>
+                <Input
+                  id="middleName"
+                  value={formData.middleName}
+                  onChange={(e) => handleInputChange('middleName', e.target.value)}
+                  className="text-gray-700"
+                  disabled={updateUserMutation.isPending}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Contact Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className={`${errors.email ? 'border-red-500' : ''} text-gray-700`}
+                  disabled={updateUserMutation.isPending}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber" className="text-gray-700">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  className="text-gray-700"
+                  disabled={updateUserMutation.isPending}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="address" className="text-gray-700">Address</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                className="text-gray-700"
+                disabled={updateUserMutation.isPending}
+              />
+            </div>
+          </div>
+
+          {/* Professional Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Professional Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="company" className="text-gray-700">Company</Label>
+                <Input
+                  id="company"
+                  value={formData.company}
+                  onChange={(e) => handleInputChange('company', e.target.value)}
+                  className="text-gray-700"
+                  disabled={updateUserMutation.isPending}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="jobTitle" className="text-gray-700">Job Title</Label>
+                <Input
+                  id="jobTitle"
+                  value={formData.jobTitle}
+                  onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                  className="text-gray-700"
+                  disabled={updateUserMutation.isPending}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Additional Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth" className="text-gray-700">Date of Birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  className="text-gray-700"
+                  disabled={updateUserMutation.isPending}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-gray-700">Gender</Label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) => handleInputChange('gender', value)}
+                  disabled={updateUserMutation.isPending}
+                >
+                  <SelectTrigger className="text-gray-700">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {genderOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="userType" className="text-gray-700">User Type</Label>
+                <Select
+                  value={formData.userType}
+                  onValueChange={(value) => handleInputChange('userType', value)}
+                  disabled={updateUserMutation.isPending}
+                >
+                  <SelectTrigger className="text-gray-700">
+                    <SelectValue placeholder="Select user type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={updateUserMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update User'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

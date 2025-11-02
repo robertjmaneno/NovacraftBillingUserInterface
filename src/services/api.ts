@@ -15,23 +15,30 @@ if (!API_BASE_URL) {
 export interface LoginRequest {
   email: string;
   password: string;
-  rememberMe?: boolean;
-  returnUrl?: string;
 }
 
 export interface LoginResponse {
   success: boolean;
   message: string;
   data?: {
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: string;
-    tokenType?: string;
-    user?: UserData;
-    requiresMfa?: boolean;
-    userId?: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: string;
+    tokenType: string;
   };
-  otp?: string;
+}
+
+// New interface for set password flow
+export interface SetPasswordRequest {
+  email: string;
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface SetPasswordResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface UserData {
@@ -258,10 +265,10 @@ export interface ForgotPasswordResponse {
 }
 
 export interface ResetPasswordRequest {
+  email: string;
   token: string;
   newPassword: string;
-  confirmNewPassword: string;
-  email?: string;
+  confirmPassword: string;
 }
 
 export interface ResetPasswordResponse {
@@ -727,6 +734,45 @@ export interface PaymentStatsResponse {
   data: PaymentStats;
 }
 
+// Dashboard data interface - contains role-appropriate data returned by backend
+export interface DashboardData {
+  stats: {
+    label: string;
+    value: string;
+    change?: string;
+    trend?: 'up' | 'down' | 'neutral';
+    icon: string;
+  }[];
+  recentInvoices?: {
+    id: string;
+    invoiceNumber: string;
+    customer: {
+      firstName?: string;
+      lastName?: string;
+      companyName?: string;
+      organizationName?: string;
+      customerType?: number;
+      email?: string;
+      phoneNumber?: string;
+    };
+    amount: number;
+    status: number;
+    createdAt: string;
+  }[];
+  availableActions: {
+    label: string;
+    description: string;
+    link: string;
+    icon: string;
+    color: string;
+  }[];
+}
+
+export interface DashboardResponse {
+  success: boolean;
+  data: DashboardData;
+}
+
 class ApiService {
   private baseUrl: string;
 
@@ -772,8 +818,12 @@ class ApiService {
     if (!skipAuth) {
       const token = localStorage.getItem('authToken');
       if (token) {
-      
-        const { isTokenExpired } = await import('../lib/jwt-utils');
+        const { isTokenExpired, logTokenDetails } = await import('../lib/jwt-utils');
+        
+        // Log token details for debugging
+        console.log('🔐 Checking token for request to:', url);
+        logTokenDetails(token);
+        
         if (isTokenExpired(token)) {
           console.log('Token is expired, clearing auth data');
           localStorage.removeItem('authToken');
@@ -909,21 +959,28 @@ class ApiService {
     return this.request<LoginResponse>('/api/Auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // Skip auth for login
   }
 
   async register(data: CreateUserRequest): Promise<UserResponse> {
     return this.request<UserResponse>('/api/Auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // Skip auth for registration
+  }
+
+  async setPassword(data: SetPasswordRequest): Promise<SetPasswordResponse> {
+    return this.request<SetPasswordResponse>('/api/Auth/set-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, true); // Skip auth for password setup
   }
 
   async forgotPassword(data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
     return this.request<ForgotPasswordResponse>('/api/Auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // Skip auth for forgot password
   }
 
   async resetPassword(data: ResetPasswordRequest): Promise<ResetPasswordResponse> {
@@ -936,7 +993,7 @@ class ApiService {
     return this.request<ResetPasswordResponse>('/api/Auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // Skip auth for reset password
   }
 
   async changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
@@ -972,7 +1029,7 @@ class ApiService {
     const response = await this.request<MfaVerifyResponse>('/api/Auth/verify-mfa-unauthenticated', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // Skip auth for MFA verification
     console.log('API - verifyMfaUnauthenticated response:', response);
     return response;
   }
@@ -985,10 +1042,10 @@ class ApiService {
   }
 
   async sendMfaCodeUnauthenticated(data: MfaSendCodeUnauthenticatedRequest): Promise<MfaSendCodeResponse> {
-    return this.request<MfaSendCodeResponse>('/api/Auth/send-mfa-code-unauthenticated', {
+    return this.request<MfaSendCodeResponse>('/api/Auth/send-mfa-code', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+    }, true); // Skip auth for sending MFA code
   }
 
   async toggleMfa(data: EnableMfaRequest): Promise<MfaToggleResponse> {
@@ -1802,6 +1859,11 @@ class ApiService {
 
   async getPaymentStats(): Promise<PaymentStatsResponse> {
     return this.request<PaymentStatsResponse>(`/api/payment/stats`);
+  }
+
+  // Dashboard endpoint - returns role-appropriate data
+  async getDashboardData(): Promise<DashboardResponse> {
+    return this.request<DashboardResponse>(`/api/dashboard`);
   }
 
   // REPORTS & ANALYTICS ENDPOINTS

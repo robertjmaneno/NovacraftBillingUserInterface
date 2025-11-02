@@ -34,49 +34,55 @@ const navigation: NavigationItem[] = [
     name: 'Dashboard', 
     href: '/', 
     icon: BarChart3,
-    permissions: ['Dashboard.View'] // From JWT token
+    permissions: ['Dashboard.View', 'Dashboard.ViewOwn', 'Dashboard.Manage'] // View system dashboard, own dashboard, or manage all dashboards
   },
   { 
     name: 'Invoices', 
     href: '/invoices', 
     icon: FileText,
-    permissions: ['Invoices.Read'] // From JWT token
+    permissions: ['Invoices.View', 'Invoices.ViewOwn', 'Invoices.Manage', 'Invoices.ManageOwn'] // View all invoices, own invoices, or manage invoices
   },
   { 
     name: 'Customers', 
     href: '/customers', 
     icon: Users,
-    permissions: ['Customers.Read'] // From JWT token
+    permissions: ['Customers.View', 'Customers.ViewOwn', 'Customers.Manage', 'Customers.ManageOwn'] // View all customers, own profile, or manage customers
   },
   { 
     name: 'Services', 
     href: '/services', 
     icon: Package,
-    permissions: ['Services.Read', 'Products.Read'] // From JWT token
+    permissions: ['Products.Read', 'Products.Manage'] // View or manage products/services
   },
   { 
     name: 'Subscriptions', 
     href: '/subscriptions', 
     icon: Calendar,
-    permissions: ['Subscriptions.Read'] // From JWT token
+    permissions: ['Subscriptions.View', 'Subscriptions.ViewOwn', 'Subscriptions.Manage', 'Subscriptions.ManageOwn'] // View all subscriptions, own subscriptions, or manage subscriptions
   },
   { 
     name: 'Payments', 
     href: '/payments', 
     icon: CreditCard,
-    permissions: ['Payments.Read'] // From JWT token
+    permissions: ['Payments.View', 'Payments.ViewOwn', 'Payments.Manage', 'Payments.ManageOwn'] // View all payments, own payments, or manage payments
   },
   { 
     name: 'Reports', 
     href: '/reports', 
     icon: Receipt,
-    permissions: ['Reports.View'] // From JWT token
+    permissions: ['Reports.View', 'Reports.ViewOwn', 'Reports.Manage', 'Reports.ManageOwn'] // View all reports, own reports, or manage reports
   },
   { 
     name: 'Users', 
     href: '/users', 
     icon: UserCog,
-    permissions: ['Users.Read', 'Users.Manage'] // From JWT token
+    permissions: ['Users.Read', 'Users.Manage'] // View or manage users (admin only)
+  },
+  { 
+    name: 'Roles', 
+    href: '/roles', 
+    icon: UserCog,
+    permissions: ['Roles.Read', 'Roles.Manage'] // View or manage roles (admin only)
   },
   { 
     name: 'Profile', 
@@ -88,19 +94,19 @@ const navigation: NavigationItem[] = [
     name: 'Invoice Template', 
     href: '/invoices/template', 
     icon: Palette,
-    permissions: ['Settings.Read'] // From JWT token
+    permissions: ['Settings.View', 'Settings.ViewOwn', 'Settings.Manage', 'Settings.ManageOwn'] // Requires settings permissions
   },
   { 
     name: 'Settings', 
     href: '/settings', 
     icon: Settings,
-    permissions: ['Settings.Read'] // From JWT token
+    permissions: ['Settings.View', 'Settings.ViewOwn', 'Settings.Manage', 'Settings.ManageOwn'] // View system settings, own settings, or manage settings
   },
 ];
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
-  const { userPermissions } = usePermissions();
+  const { userPermissions, hasAnyPermission } = usePermissions();
   const { logout, user } = useAuth();
   const { isOpen, isMobile, closeSidebar } = useSidebar();
 
@@ -115,18 +121,34 @@ export const Sidebar: React.FC = () => {
     }
   };
 
-  // Helper function to check if user should see menu item based on permissions only
+  // Helper function to check if user should see menu item based on permissions
   const shouldShowMenuItem = (item: NavigationItem) => {
     // Profile is always visible (no permissions required)
     if (item.permissions.length === 0) {
       return true;
     }
     
-    // Check if user has ANY of the required permissions
-    const hasPermission = item.permissions.some((permission: string) => userPermissions.includes(permission));
+    // Use the hasAnyPermission hook for better permission checking
+    const hasAccess = hasAnyPermission(item.permissions);
     
-    return hasPermission;
+    // Debug logging to help troubleshoot permission issues
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`MenuItem "${item.name}": Required permissions:`, item.permissions);
+      console.log(`User permissions:`, userPermissions);
+      console.log(`Has access:`, hasAccess);
+    }
+    
+    return hasAccess;
   };
+
+  // Filter navigation items based on permissions
+  const visibleNavigation = navigation.filter(shouldShowMenuItem);
+
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('User permissions:', userPermissions);
+    console.log('Visible navigation items:', visibleNavigation.map(item => item.name));
+  }
 
   // Mobile overlay when sidebar is open
   if (isMobile) {
@@ -164,7 +186,7 @@ export const Sidebar: React.FC = () => {
               
               {/* Navigation */}
               <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                {navigation.filter(shouldShowMenuItem).map((item) => (
+                {visibleNavigation.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -213,7 +235,7 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {navigation.filter(shouldShowMenuItem).map((item) => (
+          {visibleNavigation.map((item) => (
             <Link
               key={item.name}
               to={item.href}

@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';    // Notification library
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/Layout';
@@ -9,6 +11,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { SetPassword } from './pages/SetPassword';
 import { MFA } from './pages/MFA';
 import { Dashboard } from './pages/Dashboard';
 import { Customers } from "./pages/Customers";
@@ -50,6 +53,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/set-password" element={<SetPassword />} />
               <Route path="/mfa" element={<MFA />} />
 
               {/* Protected routes */}
@@ -85,6 +89,18 @@ function App() {
           </div>
         </Router>
         <Toaster position="top-right" />
+        <ToastContainer 
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
       </AuthProvider>
     </QueryClientProvider>
   );
