@@ -124,102 +124,87 @@ export const Dashboard: React.FC = () => {
   }
 
   // Extract data from backend response
-  const stats = dashboardData?.data?.stats || [];
-  const recentInvoices = dashboardData?.data?.recentInvoices || [];
-  const availableActions = dashboardData?.data?.availableActions || [];
+  const data = dashboardData?.data;
 
   // Debug what we got from backend
   if (process.env.NODE_ENV === 'development') {
-    console.log('Dashboard Data Extracted:');
-    console.log('- Stats:', stats);
-    console.log('- Recent Invoices:', recentInvoices);
-    console.log('- Available Actions:', availableActions);
+    console.log('Dashboard Data Extracted:', data);
   }
 
-  // Default stats to show if backend doesn't provide any
-  const defaultStats = [
+  // Create stats array from API data
+  const stats = data ? [
     {
-      label: 'My Invoices',
-      value: '0',
-      icon: 'FileText',
-      change: undefined,
-      trend: undefined,
+      label: 'Total Revenue',
+      value: `MWK ${data.totalRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      color: 'bg-green-50 text-green-600',
     },
     {
-      label: 'Outstanding Amount',
-      value: '0 MWK',
-      icon: 'AlertCircle',
-      change: undefined,
-      trend: undefined,
+      label: 'Total Customers',
+      value: data.totalCustomers.toString(),
+      icon: Users,
+      color: 'bg-blue-50 text-blue-600',
     },
     {
-      label: 'My Customers',
-      value: '0',
-      icon: 'Users',
-      change: undefined,
-      trend: undefined,
+      label: 'Total Invoices',
+      value: data.totalInvoices.toString(),
+      icon: FileText,
+      color: 'bg-purple-50 text-purple-600',
     },
     {
       label: 'Active Subscriptions',
-      value: '0',
-      icon: 'Calendar',
-      change: undefined,
-      trend: undefined,
+      value: data.activeSubscriptions.toString(),
+      icon: Calendar,
+      color: 'bg-orange-50 text-orange-600',
     },
-  ];
+    {
+      label: 'Outstanding Amount',
+      value: `MWK ${data.outstandingAmount.toLocaleString()}`,
+      icon: AlertCircle,
+      color: 'bg-yellow-50 text-yellow-600',
+    },
+    {
+      label: 'Overdue Invoices',
+      value: data.overdueInvoices.toString(),
+      icon: TrendingUp,
+      color: 'bg-red-50 text-red-600',
+    },
+  ] : [];
 
-  // Default actions to show if backend doesn't provide any
+  // Default actions for quick navigation
   const defaultActions = [
     {
-      label: 'View Invoices',
-      description: 'Check your invoices',
-      link: '/invoices',
-      icon: 'FileText',
+      label: 'Create Invoice',
+      description: 'Create a new invoice',
+      link: '/invoices/create',
+      icon: Plus,
       color: 'bg-blue-50 text-blue-600',
     },
     {
       label: 'View Customers',
       description: 'Manage your customers',
       link: '/customers',
-      icon: 'Users',
+      icon: Users,
       color: 'bg-green-50 text-green-600',
     },
     {
       label: 'View Subscriptions',
       description: 'Check subscriptions',
       link: '/subscriptions',
-      icon: 'Calendar',
+      icon: Calendar,
       color: 'bg-purple-50 text-purple-600',
     },
     {
       label: 'View Reports',
       description: 'Generate reports',
       link: '/reports',
-      icon: 'TrendingUp',
+      icon: TrendingUp,
       color: 'bg-orange-50 text-orange-600',
     },
   ];
 
-  // Use backend data if available, otherwise use defaults
-  const displayStats = stats.length > 0 ? stats : defaultStats;
-  const displayActions = availableActions.length > 0 ? availableActions : defaultActions;
 
-  // Get user's display name
   const displayName = user?.firstName || user?.fullName || 'User';
-
-  // Icon mapping for stats
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'TrendingUp': return TrendingUp;
-      case 'Users': return Users;
-      case 'FileText': return FileText;
-      case 'Calendar': return Calendar;
-      case 'DollarSign': return DollarSign;
-      case 'AlertCircle': return AlertCircle;
-      case 'Activity': return Activity;
-      default: return TrendingUp;
-    }
-  };
 
   return (
     <div className="space-y-8">      
@@ -233,40 +218,26 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid - Always show */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {displayStats.map((stat, index) => {
-          const IconComponent = getIcon(stat.icon);
-          
-          return (
-            <Card key={index} className="border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 rounded-lg bg-blue-50">
-                    <IconComponent className="w-5 h-5 text-blue-600" />
-                  </div>
-                  {stat.change && stat.trend && (
-                    <div className={`flex items-center space-x-1 ${
-                      stat.trend === 'up' ? 'text-green-600' : stat.trend === 'down' ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {stat.trend === 'up' && <ArrowUpRight className="w-3 h-3" />}
-                      {stat.trend === 'down' && <ArrowDownRight className="w-3 h-3" />}
-                      <span className="text-xs font-semibold">{stat.change}</span>
-                    </div>
-                  )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {stats.map((stat, index) => (
+          <Card key={index} className="border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-lg ${stat.color}`}>
+                  <stat.icon className="w-5 h-5" />
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
-                  {stat.change && <p className="text-xs text-gray-500">from last month</p>}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Invoices - Always show structure */}
+        {/* Recent Invoices */}
         <Card className="lg:col-span-2 border">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -283,9 +254,9 @@ export const Dashboard: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {recentInvoices && recentInvoices.length > 0 ? (
+            {data?.recentInvoices && data.recentInvoices.length > 0 ? (
               <div className="space-y-2">
-                {recentInvoices.map((invoice) => (
+                {data.recentInvoices.map((invoice) => (
                   <div key={invoice.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
                     <div className="flex items-center space-x-3 flex-1">
                       <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
@@ -293,21 +264,21 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-semibold text-sm text-gray-900">{invoice.invoiceNumber || `INV-${invoice.id}`}</span>
-                          <Badge className={`${getStatusColor(statusNameMap[invoice.status] || 'Unknown')} text-xs flex items-center space-x-1`}>
-                            {getStatusIcon(statusNameMap[invoice.status] || 'Unknown')}
-                            <span>{statusNameMap[invoice.status] || 'Unknown'}</span>
+                          <span className="font-semibold text-sm text-gray-900">{invoice.invoiceNumber}</span>
+                          <Badge className={`${getStatusColor(invoice.status)} text-xs flex items-center space-x-1`}>
+                            {getStatusIcon(invoice.status)}
+                            <span>{invoice.status}</span>
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-600">{getCustomerDisplayName(invoice.customer)}</p>
+                        <p className="text-xs text-gray-600">{invoice.customerName}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-sm text-gray-900">
-                        {invoice.amount?.toLocaleString() || '0'} MWK
+                        MWK {invoice.total.toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {invoice.createdAt ? new Date(invoice.createdAt).toLocaleDateString() : 'N/A'}
+                        {new Date(invoice.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -329,7 +300,7 @@ export const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Available Actions - Always show */}
+        {/* Quick Actions */}
         <Card className="border">
           <CardHeader className="pb-3">
             <div>
@@ -339,22 +310,19 @@ export const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 grid-cols-1">
-              {displayActions.map((action, index) => {
-                const IconComponent = getIcon(action.icon);
-                return (
-                  <Link key={index} to={action.link} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center`}>
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{action.label}</p>
-                        <p className="text-xs text-gray-600">{action.description}</p>
-                      </div>
+              {defaultActions.map((action, index) => (
+                <Link key={index} to={action.link} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center`}>
+                      <action.icon className="w-5 h-5" />
                     </div>
-                  </Link>
-                );
-              })}
+                    <div>
+                      <p className="font-medium text-gray-900">{action.label}</p>
+                      <p className="text-xs text-gray-600">{action.description}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>

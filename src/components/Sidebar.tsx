@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   FileText, 
@@ -14,7 +14,9 @@ import {
   UserCog,
   Palette,
   LogOut,
-  X
+  X,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -24,9 +26,10 @@ import { Button } from '@/components/ui/button';
 
 interface NavigationItem {
   name: string;
-  href: string;
+  href?: string;
   icon: React.ComponentType<{ className?: string }>;
   permissions: string[];
+  submenu?: NavigationItem[];
 }
 
 const navigation: NavigationItem[] = [
@@ -72,17 +75,24 @@ const navigation: NavigationItem[] = [
     icon: Receipt,
     permissions: ['Reports.View', 'Reports.ViewOwn', 'Reports.Manage', 'Reports.ManageOwn'] // View all reports, own reports, or manage reports
   },
-  { 
-    name: 'Users', 
-    href: '/users', 
+  {
+    name: 'Access Control',
     icon: UserCog,
-    permissions: ['Users.Read', 'Users.Manage'] // View or manage users (admin only)
-  },
-  { 
-    name: 'Roles', 
-    href: '/roles', 
-    icon: UserCog,
-    permissions: ['Roles.Read', 'Roles.Manage'] // View or manage roles (admin only)
+    permissions: ['Users.Read', 'Users.Manage', 'Roles.Read', 'Roles.Manage'], // Show if user has any user or role permissions
+    submenu: [
+      { 
+        name: 'Users', 
+        href: '/users', 
+        icon: User,
+        permissions: ['Users.Read', 'Users.Manage'] // View or manage users (admin only)
+      },
+      { 
+        name: 'Roles', 
+        href: '/roles', 
+        icon: UserCog,
+        permissions: ['Roles.Read', 'Roles.Manage'] // View or manage roles (admin only)
+      },
+    ]
   },
   { 
     name: 'Profile', 
@@ -109,6 +119,15 @@ export const Sidebar: React.FC = () => {
   const { userPermissions, hasAnyPermission } = usePermissions();
   const { logout, user } = useAuth();
   const { isOpen, isMobile, closeSidebar } = useSidebar();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  const toggleSubmenu = (menuName: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuName)
+        ? prev.filter(name => name !== menuName)
+        : [...prev, menuName]
+    );
+  };
 
   const handleLogout = () => {
     logout();
@@ -141,8 +160,93 @@ export const Sidebar: React.FC = () => {
     return hasAccess;
   };
 
-  // Filter navigation items based on permissions
-  const visibleNavigation = navigation.filter(shouldShowMenuItem);
+  // Helper function to render navigation items (with submenu support)
+  const renderNavigationItem = (item: NavigationItem) => {
+    const isExpanded = expandedMenus.includes(item.name);
+    const hasSubmenu = item.submenu && item.submenu.length > 0;
+    
+    if (hasSubmenu) {
+      // Filter visible submenu items
+      const visibleSubmenuItems = item.submenu!.filter(shouldShowMenuItem);
+      
+      // Don't show parent if no submenu items are visible
+      if (visibleSubmenuItems.length === 0) {
+        return null;
+      }
+      
+      return (
+        <div key={item.name}>
+          {/* Parent menu item (expandable) */}
+          <button
+            onClick={() => toggleSubmenu(item.name)}
+            className={cn(
+              'flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors',
+              'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            )}
+          >
+            <div className="flex items-center">
+              <item.icon className="w-5 h-5 mr-3" />
+              {item.name}
+            </div>
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </button>
+          
+          {/* Submenu items */}
+          {isExpanded && (
+            <div className="ml-6 mt-1 space-y-1">
+              {visibleSubmenuItems.map((subItem) => (
+                <Link
+                  key={subItem.name}
+                  to={subItem.href!}
+                  onClick={handleLinkClick}
+                  className={cn(
+                    'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                    location.pathname === subItem.href
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  )}
+                >
+                  <subItem.icon className="w-4 h-4 mr-3" />
+                  {subItem.name}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // Regular menu item (no submenu)
+      return (
+        <Link
+          key={item.name}
+          to={item.href!}
+          onClick={handleLinkClick}
+          className={cn(
+            'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
+            location.pathname === item.href
+              ? 'bg-blue-100 text-blue-700'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          )}
+        >
+          <item.icon className="w-5 h-5 mr-3" />
+          {item.name}
+        </Link>
+      );
+    }
+  };
+
+  // Filter navigation items based on permissions (for top-level items)
+  const visibleNavigation = navigation.filter(item => {
+    if (item.submenu) {
+      // For submenu items, check if any submenu items are visible
+      return item.submenu.some(shouldShowMenuItem);
+    }
+    return shouldShowMenuItem(item);
+  });
 
   // Debug logging for development
   if (process.env.NODE_ENV === 'development') {
@@ -186,22 +290,7 @@ export const Sidebar: React.FC = () => {
               
               {/* Navigation */}
               <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                {visibleNavigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={handleLinkClick}
-                    className={cn(
-                      'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                      location.pathname === item.href
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    )}
-                  >
-                    <item.icon className="w-5 h-5 mr-3" />
-                    {item.name}
-                  </Link>
-                ))}
+                {visibleNavigation.map((item) => renderNavigationItem(item))}
                 
                 {/* Logout button */}
                 <button
@@ -235,21 +324,7 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {visibleNavigation.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                location.pathname === item.href
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              )}
-            >
-              <item.icon className="w-5 h-5 mr-3" />
-              {item.name}
-            </Link>
-          ))}
+          {visibleNavigation.map((item) => renderNavigationItem(item))}
           
           {/* Logout button */}
           <button

@@ -7,9 +7,9 @@ import { useCustomer, useUpdateCustomer } from '@/hooks/use-customers';
 import { useUsers } from '@/hooks/use-users';
 import { CustomerForm } from './CreateCustomer';
 
-// Helper to map backend Customer to CustomerFormData
+
 function mapCustomerToFormData(customer) {
-  // Find billing and physical addresses
+
   const billing = customer.addresses.find(a => a.addressType === 1) || {};
   const physical = customer.addresses.find(a => a.addressType === 2) || {};
   return {
@@ -19,8 +19,6 @@ function mapCustomerToFormData(customer) {
     phoneNumber: customer.phoneNumber || '',
     email: customer.email || '',
     customerType: customer.customerType ?? 0,
-    taxId: customer.taxId || '',
-    registrationNumber: customer.registrationNumber || '',
     contactPerson: customer.contactPerson || '',
     contactPersonId: '', // Not available directly
     contactPhone: customer.contactPhone || '',
@@ -96,8 +94,7 @@ const EditCustomer: React.FC = () => {
             email,
             customerType,
             notes,
-            taxId,
-            registrationNumber,
+         
             contactPerson,
             contactPhone,
             contactEmail,
@@ -110,8 +107,7 @@ const EditCustomer: React.FC = () => {
             email,
             customerType,
             notes,
-            taxId,
-            registrationNumber,
+        
             contactPerson,
             contactPhone,
             contactEmail,

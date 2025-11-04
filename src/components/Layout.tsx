@@ -2,7 +2,6 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { PermissionDebugger } from './PermissionDebugger';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 
 interface LayoutProps {
@@ -20,7 +19,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {children}
           </main>
         </div>
-        <PermissionDebugger />
       </div>
     </SidebarProvider>
   );

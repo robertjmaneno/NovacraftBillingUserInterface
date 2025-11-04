@@ -736,35 +736,37 @@ export interface PaymentStatsResponse {
 
 // Dashboard data interface - contains role-appropriate data returned by backend
 export interface DashboardData {
-  stats: {
-    label: string;
-    value: string;
-    change?: string;
-    trend?: 'up' | 'down' | 'neutral';
-    icon: string;
+  totalRevenue: number;
+  totalCustomers: number;
+  outstandingAmount: number;
+  totalInvoices: number;
+  activeSubscriptions: number;
+  overdueInvoices: number;
+  topClients: {
+    customerId: number;
+    customerName: string;
+    totalRevenue: number;
   }[];
-  recentInvoices?: {
-    id: string;
+  invoiceStatusDistribution: {
+    status: string;
+    count: number;
+  }[];
+  invoiceVolumeTrend: {
+    month: string;
+    count: number;
+  }[];
+  monthlyRevenueTrend: {
+    month: string;
+    revenue: number;
+  }[];
+  recentInvoices: {
+    id: number;
     invoiceNumber: string;
-    customer: {
-      firstName?: string;
-      lastName?: string;
-      companyName?: string;
-      organizationName?: string;
-      customerType?: number;
-      email?: string;
-      phoneNumber?: string;
-    };
-    amount: number;
-    status: number;
+    customerName: string;
+    total: number;
+    status: string;
+    dueDate: string;
     createdAt: string;
-  }[];
-  availableActions: {
-    label: string;
-    description: string;
-    link: string;
-    icon: string;
-    color: string;
   }[];
 }
 
