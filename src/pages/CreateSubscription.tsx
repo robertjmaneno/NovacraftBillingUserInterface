@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Save, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCreateSubscription } from '@/hooks/use-subscriptions';
+import { useCreateSubscription, useCustomerSubscribedServices } from '@/hooks/use-subscriptions';
 import { useCustomers } from '@/hooks/use-customers';
 import { useServices } from '@/hooks/use-services';
 import { apiService } from '@/services/api';
@@ -61,6 +61,10 @@ export const CreateSubscription: React.FC = () => {
   const customers = customersData?.data?.items || [];
   const { data: servicesData, isLoading: servicesLoading } = useServices(1, 100);
   const services = useMemo(() => servicesData?.data?.items || [], [servicesData]);
+  
+  // Get customer's already subscribed services
+  const { data: subscribedServicesData } = useCustomerSubscribedServices(subscriptionData.clientId);
+  const subscribedServiceIds = useMemo(() => subscribedServicesData?.data || [], [subscribedServicesData]);
 
   const [servicePage, setServicePage] = useState(1);
   const servicesPerPage = 10;
@@ -81,6 +85,24 @@ export const CreateSubscription: React.FC = () => {
       amount: total.toString(),
     }));
   }, [subscriptionData.serviceIds, services]);
+
+  // Show already subscribed services as checked but disabled (not selectable for new subscription)
+  useEffect(() => {
+    if (subscribedServiceIds.length > 0) {
+      // Don't automatically add subscribed services to serviceIds since they're disabled
+      // Just clear any previously selected services when customer changes
+      setSubscriptionData(prev => ({
+        ...prev,
+        serviceIds: prev.serviceIds.filter(id => !subscribedServiceIds.map(subId => subId.toString()).includes(id))
+      }));
+    } else if (subscriptionData.clientId) {
+      // If customer has no subscriptions, clear any previously selected services
+      setSubscriptionData(prev => ({
+        ...prev,
+        serviceIds: []
+      }));
+    }
+  }, [subscribedServiceIds, subscriptionData.clientId]);
 
   
   const getBillingCycleString = (cycle: number) => {
@@ -103,6 +125,13 @@ export const CreateSubscription: React.FC = () => {
     try {
       
       if (selectedServices.length === 0) throw new Error('Please select at least one service');
+      
+      // Check if any selected services are already subscribed (extra validation)
+      const duplicateServices = selectedServices.filter(service => subscribedServiceIds.includes(service.id));
+      if (duplicateServices.length > 0) {
+        throw new Error(`Cannot create duplicate subscriptions for: ${duplicateServices.map(s => s.name).join(', ')}`);
+      }
+      
       const servicesPayload = selectedServices.map((service) => ({
         serviceId: service.id,
         amount: service.price,
@@ -181,6 +210,18 @@ export const CreateSubscription: React.FC = () => {
               </div>
             </div>
 
+            {/* Show existing subscriptions info */}
+            {subscriptionData.clientId && subscribedServiceIds.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                <h4 className="text-sm font-medium text-blue-800 mb-1">
+                  Customer has {subscribedServiceIds.length} existing subscription{subscribedServiceIds.length > 1 ? 's' : ''}
+                </h4>
+                <p className="text-xs text-blue-600">
+                  Existing subscriptions are marked below. Additional services may be selected.
+                </p>
+              </div>
+            )}
+
             {/* After the client dropdown, add the multi-select for services with pagination */}
             <div className="space-y-2">
               <Label>Services</Label>
@@ -189,24 +230,44 @@ export const CreateSubscription: React.FC = () => {
               ) : (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {paginatedServices.map(service => (
-                      <label key={service.id} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={subscriptionData.serviceIds.includes(service.id.toString())}
-                          onChange={e => {
-                            const checked = e.target.checked;
-                            setSubscriptionData(prev => ({
-                              ...prev,
-                              serviceIds: checked
-                                ? [...(prev.serviceIds || []), service.id.toString()]
-                                : (prev.serviceIds || []).filter(id => id !== service.id.toString())
-                            }));
-                          }}
-                        />
-                        <span>{service.name}</span>
-                      </label>
-                    ))}
+                    {paginatedServices.map(service => {
+                      const isAlreadySubscribed = subscribedServiceIds.includes(service.id);
+                      return (
+                        <label 
+                          key={service.id} 
+                          className={`flex items-center space-x-2 p-2 rounded border ${
+                            isAlreadySubscribed 
+                              ? 'bg-blue-50 border-blue-200 opacity-75' 
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                          } ${isAlreadySubscribed ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isAlreadySubscribed || subscriptionData.serviceIds.includes(service.id.toString())}
+                            disabled={isAlreadySubscribed}
+                            onChange={e => {
+                              if (isAlreadySubscribed) return; // Extra safety check
+                              const checked = e.target.checked;
+                              setSubscriptionData(prev => ({
+                                ...prev,
+                                serviceIds: checked
+                                  ? [...(prev.serviceIds || []), service.id.toString()]
+                                  : (prev.serviceIds || []).filter(id => id !== service.id.toString())
+                              }));
+                            }}
+                          className={`${isAlreadySubscribed ? 'cursor-not-allowed opacity-60' : ''} accent-blue-600`}
+                          />
+                          <span className={`${isAlreadySubscribed ? 'text-blue-700 font-medium' : ''} flex-1`}>
+                            {service.name}
+                            {isAlreadySubscribed && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-normal">
+                                ✓ Already Subscribed
+                              </span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <Button type="button" variant="outline" size="sm" disabled={servicePage === 1} onClick={() => setServicePage(p => Math.max(1, p - 1))}>

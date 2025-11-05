@@ -515,7 +515,7 @@ export const CreateCustomer: React.FC = () => {
 
       {/* Individual Customer Fields - Show only when Individual is selected */}
       {formData.customerType === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name *</Label>
             <Input
@@ -553,7 +553,7 @@ export const CreateCustomer: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
         <div className="space-y-2">
           <Label htmlFor="phoneNumber">Phone Number *</Label>
           <Input
@@ -680,7 +680,7 @@ export const CreateCustomer: React.FC = () => {
         {errors.billingStreetAddress && <p className="text-sm text-red-600">{errors.billingStreetAddress}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
         <div className="space-y-2">
           <Label htmlFor="billingCity">City *</Label>
           <Select 
@@ -775,7 +775,7 @@ export const CreateCustomer: React.FC = () => {
         {errors.physicalStreetAddress && <p className="text-sm text-red-600">{errors.physicalStreetAddress}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
         <div className="space-y-2">
           <Label htmlFor="physicalCity">City *</Label>
           <Select 
@@ -1216,7 +1216,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
 
       {/* Individual Customer Fields - Show only when Individual is selected */}
       {formData.customerType === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name *</Label>
             <Input
@@ -1254,7 +1254,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
         <div className="space-y-2">
           <Label htmlFor="phoneNumber">Phone Number *</Label>
           <Input
@@ -1381,7 +1381,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
         {errors.billingStreetAddress && <p className="text-sm text-red-600">{errors.billingStreetAddress}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
         <div className="space-y-2">
           <Label htmlFor="billingCity">City *</Label>
           <Select 
@@ -1476,7 +1476,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
         {errors.physicalStreetAddress && <p className="text-sm text-red-600">{errors.physicalStreetAddress}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ display: "none" }} /* Tax fields hidden per user request */>
         <div className="space-y-2">
           <Label htmlFor="physicalCity">City *</Label>
           <Select 
@@ -1712,11 +1712,3 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialValues, mode,
     </div>
   );
 };
-
-
-
-
-
-
-
-

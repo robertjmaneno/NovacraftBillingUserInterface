@@ -18,6 +18,15 @@ export function useSubscriptions(filters: Record<string, unknown> = {}) {
   });
 }
 
+export function useCustomerSubscribedServices(customerId: number | string | null) {
+  return useQuery({
+    queryKey: ['customer-subscribed-services', customerId],
+    queryFn: () => apiService.getCustomerSubscribedServices(Number(customerId)),
+    enabled: !!customerId && customerId !== '',
+    staleTime: 30 * 1000, // 30 seconds
+  });
+}
+
 export function useCreateSubscription() {
   const queryClient = useQueryClient();
   return useMutation({

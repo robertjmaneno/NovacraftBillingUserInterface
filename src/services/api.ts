@@ -1683,6 +1683,10 @@ class ApiService {
     });
   }
 
+  async getCustomerSubscribedServices(customerId: number): Promise<{ success: boolean; data: number[] }> {
+    return this.request<{ success: boolean; data: number[] }>(`/api/subscription/customer/${customerId}/services`);
+  }
+
   async updateSubscription(id: string | number, data: Partial<Subscription>): Promise<SubscriptionResponse> {
     return this.request<SubscriptionResponse>(`/api/subscription/${id}`, {
       method: 'PUT',
@@ -1865,7 +1869,7 @@ class ApiService {
 
   // Dashboard endpoint - returns role-appropriate data
   async getDashboardData(): Promise<DashboardResponse> {
-    return this.request<DashboardResponse>(`/api/dashboard`);
+    return this.request<DashboardResponse>(`/api/Dashboard`);
   }
 
   // REPORTS & ANALYTICS ENDPOINTS
